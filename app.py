@@ -3,7 +3,7 @@ import math
 import pandas as pd
 
 # -------------------------------------------------------------------
-# التهيئة والدوال 
+# التهيئة والدوال (بدون تغيير)
 # -------------------------------------------------------------------
 
 st.set_page_config(page_title="🕋 مخطط القوى العاملة للحج", layout="wide") 
@@ -38,48 +38,3 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, 
         "مشرف اداري": مشرفون_اجمالي - math.ceil(مشرفون_اجمالي * 0.7), 
         "مقدم خدمة": مقدم_خدمة, 
         "اداري": إداري
-    }
-
-# تحديد الإدارات وتصنيفها - المعايير النهائية المطلوبة
-DEPARTMENTS = {
-    "مراكز الضيافة": [
-        {"name": "مركز الضيافة", "type": "Ratio", "default_ratio": 75, "default_coverage": 100}, 
-    ],
-    "الاستقبال والمغادرة": [
-        {"name": "استقبال الهجرة", "type": "Ratio", "default_ratio": 100, "default_coverage": 30},
-        {"name": "استقبال المطار", "type": "Ratio", "default_ratio": 100, "default_coverage": 50},
-        {"name": "استقبال القطار", "type": "Ratio", "default_ratio": 100, "default_coverage": 20},
-        {"name": "إرشاد الحافلات", "type": "Bus_Ratio", "default_ratio": 2}, # لا ينطبق عليها النسبة
-    ],
-    "الدعم والمساندة": [
-        {"name": "المتابعة الميدانية", "type": "Ratio", "default_ratio": 100, "default_coverage": 100},
-        {"name": "الدعم والضيافة", "type": "Ratio", "default_ratio": 80, "default_coverage": 100},
-        {"name": "التوجيه", "type": "Ratio", "default_ratio": 90, "default_coverage": 100},
-        {"name": "الزيارة وإرشاد التأهيل", "type": "Time", "default_time": 2.5, "default_coverage": 100}, 
-        {"name": "الرعاية الصحية", "type": "Ratio", "default_ratio": 200, "default_coverage": 100},
-    ]
-}
-
-# -------------------------------------------------------------------
-# القسم الأول: الإعدادات العامة ونوع الإدارة
-# -------------------------------------------------------------------
-
-st.sidebar.header("1. الإعدادات العامة")
-
-department_type_choice = st.sidebar.selectbox(
-    "اختر نوع الإدارة المراد حسابه:",
-    options=list(DEPARTMENTS.keys()),
-    key="dept_type" 
-)
-
-num_hajjaj = st.sidebar.number_input("عدد الحجاج الإجمالي", min_value=1, value=3000, step=100, key="num_hajjaj")
-service_days = st.sidebar.number_input("فترة الخدمة الإجمالية (بالأيام)", min_value=1, value=6, key="service_days")
-staff_work_hours_day = st.sidebar.number_input("ساعات عمل الموظف اليومية", min_value=1, max_value=16, value=8, key="staff_hours")
-reserve_factor_input = st.sidebar.slider("نسبة الاحتياط الإجمالي (%)", min_value=0, max_value=50, value=15, key="reserve_factor_input")
-reserve_factor = reserve_factor_input / 100 
-
-
-# --- المدخلات الخاصة بالهيكل الإداري (التوزيع الهرمي) ---
-st.sidebar.header("2. معايير الهيكل الإداري")
-st.sidebar.markdown('**نسب الإشراف (للتوزيع الهرمي)**')
-ratio_supervisor = st.sidebar.number_input("مقدم خدمة / مشرف", min_
