@@ -21,7 +21,6 @@ def calculate_time_based_staff(total_events, time_per_event_min, service_days, s
     return {'Basic': basic_staff, 'Total': basic_staff, 'CalcType': 'Time'}
 
 def calculate_ratio_based_staff(num_hajjaj_in_center, ratio, reserve_factor):
-    # نستخدم num_hajjaj_in_center الذي يمثل العدد الفعلي بعد ضربه في النسبة
     basic_staff = math.ceil(num_hajjaj_in_center / ratio)
     return {'Basic': basic_staff, 'Total': basic_staff, 'CalcType': 'Ratio'}
 
@@ -41,23 +40,22 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, 
         "اداري": إداري
     }
 
-# تحديد الإدارات وتصنيفها - تم إضافة نسبة التغطية (default_coverage)
+# تحديد الإدارات وتصنيفها - المعايير النهائية المطلوبة
 DEPARTMENTS = {
     "مراكز الضيافة": [
-        {"name": "مركز الضيافة", "type": "Ratio", "default_ratio": 75, "default_coverage": 100}, # 100% يمرون بهذا المركز
+        {"name": "مركز الضيافة", "type": "Ratio", "default_ratio": 75, "default_coverage": 100}, 
     ],
     "الاستقبال والمغادرة": [
-        # تم إضافة default_coverage
-        {"name": "استقبال الهجرة", "type": "Ratio", "default_ratio": 100, "default_coverage": 30}, # 30% يمرون بالهجرة افتراضياً
-        {"name": "استقبال المطار", "type": "Ratio", "default_ratio": 100, "default_coverage": 50}, # 50% يمرون بالمطار افتراضياً
-        {"name": "استقبال القطار", "type": "Ratio", "default_ratio": 100, "default_coverage": 20}, # 20% يمرون بالقطار افتراضياً
+        {"name": "استقبال الهجرة", "type": "Ratio", "default_ratio": 100, "default_coverage": 30},
+        {"name": "استقبال المطار", "type": "Ratio", "default_ratio": 100, "default_coverage": 50},
+        {"name": "استقبال القطار", "type": "Ratio", "default_ratio": 100, "default_coverage": 20},
         {"name": "إرشاد الحافلات", "type": "Bus_Ratio", "default_ratio": 2}, # لا ينطبق عليها النسبة
     ],
     "الدعم والمساندة": [
         {"name": "المتابعة الميدانية", "type": "Ratio", "default_ratio": 100, "default_coverage": 100},
         {"name": "الدعم والضيافة", "type": "Ratio", "default_ratio": 80, "default_coverage": 100},
         {"name": "التوجيه", "type": "Ratio", "default_ratio": 90, "default_coverage": 100},
-        {"name": "الزيارة وإرشاد التأهيل", "type": "Time", "default_time": 2.5, "default_coverage": 100}, # تم إضافة default_coverage
+        {"name": "الزيارة وإرشاد التأهيل", "type": "Time", "default_time": 2.5, "default_coverage": 100}, 
         {"name": "الرعاية الصحية", "type": "Ratio", "default_ratio": 200, "default_coverage": 100},
     ]
 }
@@ -84,18 +82,4 @@ reserve_factor = reserve_factor_input / 100
 # --- المدخلات الخاصة بالهيكل الإداري (التوزيع الهرمي) ---
 st.sidebar.header("2. معايير الهيكل الإداري")
 st.sidebar.markdown('**نسب الإشراف (للتوزيع الهرمي)**')
-ratio_supervisor = st.sidebar.number_input("مقدم خدمة / مشرف", min_value=1, value=8, key="ratio_supervisor")
-ratio_assistant_head = st.sidebar.number_input("مشرف / مساعد رئيس", min_value=1, value=4, key="ratio_assistant_head")
-ratio_head = st.sidebar.number_input("مساعد رئيس / رئيس", min_value=1, value=3, key="ratio_head")
-
-
-# -------------------------------------------------------------------
-# القسم الثاني: مدخلات الإدارات حسب النوع المختار (تم إضافة مدخلات النسبة)
-# -------------------------------------------------------------------
-
-st.sidebar.header(f"3. معايير {department_type_choice}")
-
-ratios = {} 
-time_based_inputs = {} 
-bus_ratio_inputs = {} 
-coverage_percentages = {} # قاموس جديد لحفظ نسب التغط
+ratio_supervisor = st.sidebar.number_input("مقدم خدمة / مشرف", min_
