@@ -3,7 +3,7 @@
 primaryColor = "#004085"  
 
 # لون الخلفية الرئيسية للصفحة 
-backgroundColor = "#F5F5F5" 
+backgroundColor = "#ececec" 
 
 # لون خلفية الشريط الجانبي (Sidebar)
 secondaryBackgroundColor = "#FFFFFF" 
