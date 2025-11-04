@@ -6,7 +6,7 @@ primaryColor = "#0D47A1"
 backgroundColor = "#FFFFFF" 
 
 # لون الخلفية الثانوية (لتغيير لون الشريط الجانبي)
-secondaryBackgroundColor = "#E3F2FD" 
+secondaryBackgroundColor = "#ad3000" 
 
 # لون الخط الأساسي
 textColor = "#212121"
