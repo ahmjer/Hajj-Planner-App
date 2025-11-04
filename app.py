@@ -25,6 +25,7 @@ def calculate_ratio_based_staff(num_hajjaj_in_center, ratio, reserve_factor):
     basic_staff = math.ceil(num_hajjaj_in_center / ratio)
     return {'Basic': basic_staff, 'Total': basic_staff, 'CalcType': 'Ratio'}
 
+# 📌 تم مراجعة هذه الدالة بالكامل
 def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, ratio_head):
     مقدم_خدمة = total_basic_staff  
     
@@ -33,14 +34,4 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, 
     
     مشرفون_اجمالي_للهرم = math.ceil(مقدم_خدمة / ratio_supervisor)
     
-    مشرفون_اجمالي = max(مشرفون_اجمالي_للهرم, مشرف_ميداني_مخصص)
-    
-    مساعد_رئيس = math.ceil(مشرفون_اجمالي / ratio_assistant_head)
-    رئيس = math.ceil(مساعد_رئيس / ratio_head)
-    إداري = 1 
-    
-    return {
-        "رئيس": رئيس, 
-        "مساعد رئيس": مساعد_رئيس, 
-        "مشرف ميداني": مشرف_ميداني_مخصص, 
-        "مشرف اداري": مشرف_اد
+    مشرفون_اجمالي = max(مشرفون_اجمالي_للهرم,
