@@ -1,1 +1,12 @@
+[theme]
+# لون الأزرار والعناصر التفاعلية
+primaryColor = "#0D47A1" 
 
+# لون الخلفية الرئيسية للصفحة
+backgroundColor = "#FFFFFF" 
+
+# لون الخلفية الثانوية (لتغيير لون الشريط الجانبي)
+secondaryBackgroundColor = "#E3F2FD" 
+
+# لون الخط الأساسي
+textColor = "#212121"
