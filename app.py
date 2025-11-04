@@ -67,7 +67,7 @@ DEPARTMENTS = {
         {"name": "استقبال الهجرة", "type": "Ratio", "default_ratio": 100, "default_coverage": 30},
         {"name": "استقبال المطار", "type": "Ratio", "default_ratio": 100, "default_coverage": 50},
         {"name": "استقبال القطار", "type": "Ratio", "default_ratio": 100, "default_coverage": 20},
-        {"name": "توجيه الحافلات", "type": "Bus_Ratio", "default_ratio": 2}, 
+        {"name": "إرشاد الحافلات", "type": "Bus_Ratio", "default_ratio": 2}, 
     ],
     "الإسناد والدعم": [
         {"name": "متابعة ميدانية", "type": "Ratio", "default_ratio": 100, "default_coverage": 100},
