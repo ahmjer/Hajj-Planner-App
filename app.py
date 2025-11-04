@@ -54,15 +54,15 @@ DEPARTMENTS = {
     "مراكز الضيافة": [
         {"name": "مراكز الضيافة ", "type": "Ratio", "default_ratio": 75, "default_coverage": 100}, 
     ],
-    "Arrival_Departure": [
+    "الإستقبال والمغادرة": [
         {"name": "Migration Reception", "type": "Ratio", "default_ratio": 100, "default_coverage": 30},
         {"name": "Airport Reception", "type": "Ratio", "default_ratio": 100, "default_coverage": 50},
         {"name": "Train Reception", "type": "Ratio", "default_ratio": 100, "default_coverage": 20},
         {"name": "Bus Guidance", "type": "Bus_Ratio", "default_ratio": 2}, 
     ],
-    "Support": [
+    "الدعم والمساندة": [
         {"name": "Field Follow-up", "type": "Ratio", "default_ratio": 100, "default_coverage": 100},
-        {"name": "Support and Hospitality", "type": "Ratio", "default_ratio": 80, "default_coverage": 100},
+        {"name": "الدعم والمساندة ", "type": "Ratio", "default_ratio": 80, "default_coverage": 100},
         {"name": "Guidance", "type": "Ratio", "default_ratio": 90, "default_coverage": 100},
         {"name": "Visit/Rehabilitation Guidance", "type": "Time", "default_time": 2.5, "default_coverage": 100}, 
         {"name": "Health Care", "type": "Ratio", "default_ratio": 200, "default_coverage": 100},
