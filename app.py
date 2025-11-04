@@ -61,7 +61,7 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, 
 
 DEPARTMENTS = {
     "الضيافة": [
-        {"name": "مركز الضيافة", "type": "Ratio", "default_ratio": 75, "default_coverage": 100}, 
+        {"name": "مركز الضيافة", "type": "Ratio", "default_ratio": 200, "default_coverage": 100}, 
     ],
     "الوصول والمغادرة": [
         {"name": "استقبال الهجرة", "type": "Ratio", "default_ratio": 100, "default_coverage": 30},
@@ -93,7 +93,7 @@ st.markdown("---")
 
 st.sidebar.header("1. الإعدادات العامة")
 
-num_hajjaj = st.sidebar.number_input("عدد الحجاج الإجمالي", min_value=1, value=3000, step=100, key="num_hajjaj")
+num_hajjaj = st.sidebar.number_input("عدد الحجاج الإجمالي", min_value=1, value=5000, step=100, key="num_hajjaj")
 service_days = st.sidebar.number_input("فترة الخدمة الإجمالية (بالأيام)", min_value=1, value=6, key="service_days")
 staff_work_hours_day = st.sidebar.number_input("ساعات عمل الموظف اليومية", min_value=1, max_value=16, value=8, key="staff_hours")
 reserve_factor_input = st.sidebar.slider("نسبة الاحتياط الإجمالي (%)", min_value=0, max_value=50, value=15, key="reserve_factor_input")
@@ -278,7 +278,7 @@ if calculate_button:
 
     column_order = [
         "رئيس", "مساعد رئيس", "مشرف اداري", "مشرف ميداني", 
-        "مقدم خدمة", "اداري", "المجموع الإجمالي (بالاحتياط)"
+        "مقدم خدمة", "المجموع الإجمالي (بالاحتياط)"
     ]
     
     df = pd.DataFrame(all_results)
