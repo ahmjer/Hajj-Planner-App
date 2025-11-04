@@ -25,12 +25,10 @@ def calculate_ratio_based_staff(num_units, ratio):
     basic_staff = math.ceil(num_units / ratio)
     return basic_staff
 
-# 📌 تم تعديل دالة التوزيع لإزالة حساب الإداري والمشرف الإداري
 def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, shifts):
     service_provider = total_basic_staff  
     
     field_supervisor_fixed = SUPERVISORS_PER_SHIFT * shifts 
-    # admin_supervisor_fixed = 0 # تم إزالته
     
     total_hierarchical_supervisors = math.ceil(service_provider / ratio_supervisor)
     
@@ -40,7 +38,6 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, 
     assistant_head = max(assistant_head_fixed, math.ceil(total_supervisors / ratio_assistant_head))
     
     head = 1  
-    # admin_staff = 1 # تم إزالته
     
     return {
         "Head": head, 
@@ -99,7 +96,8 @@ st.markdown("---")
 # القسم الأول: الإعدادات العامة ونوع الإدارة (في الشريط الجانبي)
 # -------------------------------------------------------------------
 
-st.sidebar.image("logo.png", width=200)
+st.sidebar.image("logo.png", width=200) # استخدام عرض ثابت 200 لتجنب مشاكل الجودة 
+
 st.sidebar.header("1. الإعدادات العامة")
 
 # مدخلات عدد الحجاج الجديدة
@@ -130,6 +128,9 @@ shifts_count = st.sidebar.selectbox(
     index=2,
     key="shifts_count"
 )
+# تم حذف الجملة الإخبارية حول الفترات بناءً على الطلب السابق (وذلك لا يؤثر على الحساب)
+# st.sidebar.info(f"مشرف ميداني ومساعد رئيس سيزيدان لكل {shifts_count} فترة.")
+
 ratio_supervisor = st.sidebar.number_input("مقدم خدمة / مشرف", min_value=1, value=8, key="ratio_supervisor")
 ratio_assistant_head = st.sidebar.number_input("مشرف / مساعد رئيس (للهرم)", min_value=1, value=4, key="ratio_assistant_head")
 
@@ -189,7 +190,15 @@ with st.container(border=True):
                 coverage_label = f"نسبة تغطية (%)"
                 coverage_key = f"cov_{department_type_choice}_{name}_{i}"
                 
-                coverage_val = st.slider(coverage_label, min_value=0, max_value=100, value=default_cov, key=coverage_key)
+                # 📌 التعديل هنا: تحويل من شريط سحب إلى مربع إدخال رقمي
+                coverage_val = st.number_input(
+                    coverage_label, 
+                    min_value=0, 
+                    max_value=100, 
+                    value=default_cov, 
+                    step=1, 
+                    key=coverage_key
+                )
                 coverage_percentages[name] = coverage_val / 100 
 
             # B. إدخال معيار الاحتساب (Ratio/Time/Bus)
@@ -226,7 +235,6 @@ if calculate_button:
     all_results = []
     total_staff_needed = 0
 
-    # 📌 تم حذف وظيفتي "مشرف اداري" و "اداري" من الترجمة
     TRANSLATION_MAP = {
         "Head": "رئيس", 
         "Assistant_Head": "مساعد رئيس", 
@@ -316,7 +324,6 @@ if calculate_button:
     st.subheader(f"نتائج الاحتياج للقوى العاملة والتوزيع الوظيفي لـ {department_type_choice}")
     st.markdown("يتم تطبيق نسبة الاحتياط على **المجموع الإجمالي** لكل إدارة.")
 
-    # 📌 تم حذف وظيفتي "مشرف اداري" و "اداري" من قائمة عرض الأعمدة
     column_order = [
         "رئيس", "مساعد رئيس", "مشرف ميداني", 
         "مقدم خدمة", "المجموع الإجمالي (بالاحتياط)" 
