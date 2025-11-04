@@ -131,8 +131,6 @@ shifts_count = st.sidebar.selectbox(
     index=2,
     key="shifts_count"
 )
-st.sidebar.info(f"مشرف ميداني ومساعد رئيس سيزيدان لكل {shifts_count} فترة.")
-
 ratio_supervisor = st.sidebar.number_input("مقدم خدمة / مشرف", min_value=1, value=8, key="ratio_supervisor")
 ratio_assistant_head = st.sidebar.number_input("مشرف / مساعد رئيس (للهرم)", min_value=1, value=4, key="ratio_assistant_head")
 
