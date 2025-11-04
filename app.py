@@ -37,4 +37,10 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, 
     
     مساعد_رئيس = math.ceil(مشرفون_اجمالي / ratio_assistant_head)
     رئيس = math.ceil(مساعد_رئيس / ratio_head)
-    إداري = 1
+    إداري = 1 
+    
+    return {
+        "رئيس": رئيس, 
+        "مساعد رئيس": مساعد_رئيس, 
+        "مشرف ميداني": مشرف_ميداني_مخصص, 
+        "مشرف اداري": مشرف_اد
