@@ -11,6 +11,7 @@ SHIFT_HOURS = 8
 TOTAL_WORK_HOURS = 24
 SUPERVISORS_PER_SHIFT = 1
 FIELD_SUPERVISORS_PER_LOCATION = math.ceil(TOTAL_WORK_HOURS / SHIFT_HOURS) * SUPERVISORS_PER_SHIFT # 3 مشرفين
+DEFAULT_HEAD_ASSISTANT_RATIO = 4 # رئيس / مساعد رئيس (قيمة افتراضية ثابتة)
 
 
 def calculate_time_based_staff(total_events, time_per_event_min, service_days, staff_work_hours_day, reserve_factor):
@@ -25,8 +26,8 @@ def calculate_ratio_based_staff(num_hajjaj_in_center, ratio, reserve_factor):
     basic_staff = math.ceil(num_hajjaj_in_center / ratio)
     return {'Basic': basic_staff, 'Total': basic_staff, 'CalcType': 'Ratio'}
 
-# 📌 تم تحويل المتغيرات والمفاتيح الداخلية إلى الإنجليزية لتفادي التشويه
-def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, ratio_head):
+# 📌 تم حذف ratio_head من معاملات الدالة
+def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head):
     service_provider = total_basic_staff  
     
     field_supervisor_fixed = FIELD_SUPERVISORS_PER_LOCATION 
@@ -37,7 +38,9 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, 
     total_supervisors = max(total_hierarchical_supervisors, field_supervisor_fixed)
     
     assistant_head = math.ceil(total_supervisors / ratio_assistant_head)
-    head = math.ceil(assistant_head / ratio_head)
+    
+    # 📌 تم استخدام الثابت الجديد هنا
+    head = math.ceil(assistant_head / DEFAULT_HEAD_ASSISTANT_RATIO) 
     admin_staff = 1 
     
     return {
@@ -47,229 +50,11 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, 
         "Admin_Supervisor": admin_supervisor_fixed, 
         "Service_Provider": service_provider, 
         "Admin_Staff": admin_staff
-    } # 📌 تم التأكد من إغلاق القوس المعكوف
+    } 
 
-# 📌 تم استخدام مفاتيح إنجليزية لتجاوز مشكلة قطع السلاسل النصية العربية 
+# تم استخدام مفاتيح إنجليزية لتجاوز مشكلة قطع السلاسل النصية العربية 
 DEPARTMENTS = {
-    "مراكز الضيافة": [
-        {"name": "مراكز الضيافة ", "type": "Ratio", "default_ratio": 75, "default_coverage": 100}, 
+    "Hospitality": [
+        {"name": "Hospitality Center", "type": "Ratio", "default_ratio": 75, "default_coverage": 100}, 
     ],
-    "الإستقبال والمغادرة": [
-        {"name": "Migration Reception", "type": "Ratio", "default_ratio": 100, "default_coverage": 30},
-        {"name": "Airport Reception", "type": "Ratio", "default_ratio": 100, "default_coverage": 50},
-        {"name": "Train Reception", "type": "Ratio", "default_ratio": 100, "default_coverage": 20},
-        {"name": "Bus Guidance", "type": "Bus_Ratio", "default_ratio": 2}, 
-    ],
-    "الدعم والمساندة": [
-        {"name": "Field Follow-up", "type": "Ratio", "default_ratio": 100, "default_coverage": 100},
-        {"name": "الدعم والمساندة ", "type": "Ratio", "default_ratio": 80, "default_coverage": 100},
-        {"name": "Guidance", "type": "Ratio", "default_ratio": 90, "default_coverage": 100},
-        {"name": "Visit/Rehabilitation Guidance", "type": "Time", "default_time": 2.5, "default_coverage": 100}, 
-        {"name": "Health Care", "type": "Ratio", "default_ratio": 200, "default_coverage": 100},
-    ]
-} 
-
-# -------------------------------------------------------------------
-# الواجهة الرئيسية (Streamlit UI)
-# -------------------------------------------------------------------
-
-st.set_page_config(page_title="🕋 مخطط القوى العاملة للحج", layout="wide") 
-
-st.title("🕋 أداة تخطيط القوى العاملة الذكية")
-st.markdown("---")
-
-# -------------------------------------------------------------------
-# القسم الأول: الإعدادات العامة ونوع الإدارة
-# -------------------------------------------------------------------
-
-st.sidebar.header("1. الإعدادات العامة")
-
-department_type_choice = st.sidebar.selectbox(
-    "اختر نوع الإدارة المراد حسابه:",
-    options=list(DEPARTMENTS.keys()),
-    key="dept_type" 
-)
-
-num_hajjaj = st.sidebar.number_input("عدد الحجاج الإجمالي", min_value=1, value=3000, step=100, key="num_hajjaj")
-service_days = st.sidebar.number_input("فترة الخدمة الإجمالية (بالأيام)", min_value=1, value=6, key="service_days")
-staff_work_hours_day = st.sidebar.number_input("ساعات عمل الموظف اليومية", min_value=1, max_value=16, value=8, key="staff_hours")
-reserve_factor_input = st.sidebar.slider("نسبة الاحتياط الإجمالي (%)", min_value=0, max_value=50, value=15, key="reserve_factor_input")
-reserve_factor = reserve_factor_input / 100 
-
-
-# --- المدخلات الخاصة بالهيكل الإداري (التوزيع الهرمي) ---
-st.sidebar.header("2. معايير الهيكل الإداري")
-st.sidebar.markdown('**نسب الإشراف (للتوزيع الهرمي)**')
-
-ratio_supervisor = st.sidebar.number_input("مقدم خدمة / مشرف", min_value=1, value=8, key="ratio_supervisor")
-ratio_assistant_head = st.sidebar.number_input("مشرف / مساعد رئيس", min_value=1, value=4, key="ratio_assistant_head")
-ratio_head = st.sidebar.number_input("مساعد رئيس / رئيس", min_value=1, value=3, key="ratio_head")
-
-
-# -------------------------------------------------------------------
-# القسم الثاني: مدخلات الإدارات حسب النوع المختار 
-# -------------------------------------------------------------------
-
-st.sidebar.header(f"3. معايير {department_type_choice}")
-
-ratios = {} 
-time_based_inputs = {} 
-bus_ratio_inputs = {} 
-coverage_percentages = {} 
-
-for i, dept in enumerate(DEPARTMENTS[department_type_choice]):
-    name = dept['name']
-    dept_type = dept['type']
-    
-    st.sidebar.markdown(f"***_{name}_***") 
-
-    # A. إدخال نسبة التغطية (لكل ما يعتمد على عدد الحجاج)
-    if dept_type in ['Ratio', 'Time']:
-        default_cov = dept.get('default_coverage', 100)
-        coverage_label = f"نسبة تغطية (%)"
-        coverage_key = f"cov_{department_type_choice}_{name}_{i}"
-        
-        coverage_val = st.sidebar.slider(coverage_label, min_value=0, max_value=100, value=default_cov, key=coverage_key)
-        coverage_percentages[name] = coverage_val / 100 
-
-    # B. إدخال معيار الاحتساب (Ratio/Time/Bus)
-    if dept_type == 'Ratio':
-        label = "المعيار (حاج/موظف)"
-        key_val = f"ratio_{department_type_choice}_{name}_{i}" 
-        ratios[name] = st.sidebar.number_input(label, min_value=1, value=dept['default_ratio'], key=key_val)
-    
-    elif dept_type == 'Time':
-        label = "المعيار (دقيقة/حاج)"
-        key_val = f"time_{department_type_choice}_{name}_{i}" 
-        time_based_inputs[name] = st.sidebar.number_input(label, min_value=0.5, value=dept['default_time'], step=0.1, key=key_val)
-
-    elif dept_type == 'Bus_Ratio':
-        bus_inputs = {'Bus_Count': 0, 'Ratio': 0}
-        bus_inputs['Bus_Count'] = st.sidebar.number_input("عدد الحافلات المتوقعة", min_value=1, value=20, key=f"bus_count_{name}_{i}")
-        
-        bus_label = "المعيار (حافلة/موظف)"
-        bus_inputs['Ratio'] = st.sidebar.number_input(bus_label, min_value=1, value=dept['default_ratio'], key=f"bus_ratio_{name}_{i}")
-        bus_ratio_inputs[name] = bus_inputs 
-
-
-# -------------------------------------------------------------------
-# تنفيذ الحسابات والتوزيع
-# -------------------------------------------------------------------
-
-st.markdown("---") 
-# زر الاحتساب
-calculate_button = st.button(f"🔄 اضغط هنا لحساب وعرض احتياج {department_type_choice}", type="primary", key="calculate_button_main")
-
-if calculate_button: 
-    
-    st.success("✅ تم الضغط على الزر. جاري بدء الحساب...") 
-
-    all_results = []
-    total_staff_needed = 0
-
-    # جدول ترجمة المفاتيح الإنجليزية إلى العربية للعرض النهائي
-    TRANSLATION_MAP = {
-        "Head": "رئيس", 
-        "Assistant_Head": "مساعد رئيس", 
-        "Field_Supervisor": "مشرف ميداني", 
-        "Admin_Supervisor": "مشرف اداري", 
-        "Service_Provider": "مقدم خدمة", 
-        "Admin_Staff": "اداري"
-    }
-
-    # أ. حساب الإدارات المعتمدة على التغطية (حاج / موظف)
-    for dept, ratio in ratios.items():
-        actual_hajjaj_in_center = num_hajjaj * coverage_percentages[dept]
-        
-        res_basic = calculate_ratio_based_staff(actual_hajjaj_in_center, ratio, 0) 
-        staff_breakdown = distribute_staff(res_basic['Basic'], ratio_supervisor, ratio_assistant_head, ratio_head)
-        
-        total_staff_in_hierarchy = sum(staff_breakdown.values())
-        total_needed_with_reserve = math.ceil(total_staff_in_hierarchy * (1 + reserve_factor))
-
-        # تحويل المفاتيح الإنجليزية إلى العربية قبل الإضافة للنتائج النهائية
-        translated_breakdown = {TRANSLATION_MAP.get(k, k): v for k, v in staff_breakdown.items()}
-        
-        result_entry = {"الإدارة": dept}
-        result_entry.update(translated_breakdown)
-        result_entry["المجموع الإجمالي (بالاحتياط)"] = total_needed_with_reserve
-
-        all_results.append(result_entry)
-        total_staff_needed += total_needed_with_reserve
-
-
-    # ب. حساب إرشاد الحافلات (معيار خاص) 
-    for dept, bus_inputs in bus_ratio_inputs.items():
-        num_units = bus_inputs['Bus_Count'] 
-        bus_ratio = bus_inputs['Ratio'] 
-        
-        res_basic_buses = calculate_ratio_based_staff(num_units, bus_ratio, 0) 
-        staff_breakdown_buses = distribute_staff(res_basic_buses['Basic'], ratio_supervisor, ratio_assistant_head, ratio_head)
-        
-        total_staff_in_hierarchy = sum(staff_breakdown_buses.values())
-        total_needed_buses = math.ceil(total_staff_in_hierarchy * (1 + reserve_factor))
-
-        translated_breakdown = {TRANSLATION_MAP.get(k, k): v for k, v in staff_breakdown_buses.items()}
-        
-        result_entry = {"الإدارة": dept}
-        result_entry.update(translated_breakdown)
-        result_entry["المجموع الإجمالي (بالاحتياط)"] = total_needed_buses
-        
-        all_results.append(result_entry)
-        total_staff_needed += total_needed_buses
-
-
-    # ج. حساب الإدارات المعتمدة على الزمن (Time-based)
-    for dept, time_min in time_based_inputs.items():
-        actual_hajjaj_in_center = num_hajjaj * coverage_percentages[dept]
-        
-        res_basic_time = calculate_time_based_staff(actual_hajjaj_in_center * 2, time_min, service_days, staff_work_hours_day, 0)
-        
-        staff_breakdown_time = distribute_staff(res_basic_time['Basic'], ratio_supervisor, ratio_assistant_head, ratio_head)
-        
-        total_staff_in_hierarchy = sum(staff_breakdown_time.values())
-        total_needed_time = math.ceil(total_staff_in_hierarchy * (1 + reserve_factor))
-
-        translated_breakdown = {TRANSLATION_MAP.get(k, k): v for k, v in staff_breakdown_time.items()}
-        
-        result_entry = {"الإدارة": dept}
-        result_entry.update(translated_breakdown)
-        result_entry["المجموع الإجمالي (بالاحتياط)"] = total_needed_time
-        
-        all_results.append(result_entry)
-        total_staff_needed += total_needed_time
-
-
-    st.info("📊 اكتملت الحسابات. جاري عرض النتائج.") 
-
-    # -------------------------------------------------------------------
-    # عرض النتائج
-    # -------------------------------------------------------------------
-
-    st.subheader(f"نتائج الاحتياج للقوى العاملة والتوزيع الوظيفي لـ {department_type_choice}")
-    st.markdown("يتم تطبيق نسبة الاحتياط على **المجموع الإجمالي** لكل إدارة.")
-
-    column_order = [
-        "رئيس", "مساعد رئيس", "مشرف اداري", "مشرف ميداني", 
-        "مقدم خدمة", "اداري", "المجموع الإجمالي (بالاحتياط)"
-    ]
-    
-    df = pd.DataFrame(all_results)
-    df = df.set_index("الإدارة") 
-    df = df[column_order]
-
-    st.dataframe(df, use_container_width=True)
-
-    st.markdown("---")
-
-    # عرض الإجمالي
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric(
-            label=f"**المجموع الكلي للقوى العاملة المطلوبة لـ {department_type_choice}**",
-            value=f"{total_staff_needed} موظف",
-        )
-    with col2:
-        st.info(f"نسبة الاحتياط الإجمالية المطبقة: {reserve_factor_input}%")
-else:
-    st.info(f"يرجى اختيار نوع الإدارة وتعديل المعايير في الشريط الجانبي ثم النقر على زر الحساب لرؤية النتائج لـ {department_type_choice}.")
+    "Arrival_Departure":
