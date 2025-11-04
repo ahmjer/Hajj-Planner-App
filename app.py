@@ -54,7 +54,6 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, 
 DEPARTMENTS = {
     "مراكز الضيافة": [
         {'name': 'مركز الضيافة', 'type': 'Ratio', 'default_ratio': 75},
-        {'name': 'الخدمات الميدانية والإسكان', 'type': 'Ratio', 'default_ratio': 50},
     ],
     "الاستقبال والمغادرة": [
         {'name': 'استقبال الهجرة', 'type': 'Time', 'default_time': 2.0},
