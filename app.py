@@ -51,8 +51,8 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, 
 
 # 📌 تم استخدام مفاتيح إنجليزية لتجاوز مشكلة قطع السلاسل النصية العربية 
 DEPARTMENTS = {
-    "Hospitality": [
-        {"name": "Hospitality Center", "type": "Ratio", "default_ratio": 75, "default_coverage": 100}, 
+    "مراكز الضيافة": [
+        {"name": "مراكز الضيافة ", "type": "Ratio", "default_ratio": 75, "default_coverage": 100}, 
     ],
     "Arrival_Departure": [
         {"name": "Migration Reception", "type": "Ratio", "default_ratio": 100, "default_coverage": 30},
