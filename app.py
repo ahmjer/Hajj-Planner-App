@@ -25,11 +25,12 @@ def calculate_ratio_based_staff(num_units, ratio):
     basic_staff = math.ceil(num_units / ratio)
     return basic_staff
 
+# 📌 تم تعديل دالة التوزيع لإزالة حساب الإداري والمشرف الإداري
 def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, shifts):
     service_provider = total_basic_staff  
     
     field_supervisor_fixed = SUPERVISORS_PER_SHIFT * shifts 
-    admin_supervisor_fixed = 0 
+    # admin_supervisor_fixed = 0 # تم إزالته
     
     total_hierarchical_supervisors = math.ceil(service_provider / ratio_supervisor)
     
@@ -39,15 +40,13 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, 
     assistant_head = max(assistant_head_fixed, math.ceil(total_supervisors / ratio_assistant_head))
     
     head = 1  
-    admin_staff = 1 
+    # admin_staff = 1 # تم إزالته
     
     return {
         "Head": head, 
         "Assistant_Head": assistant_head, 
         "Field_Supervisor": field_supervisor_fixed, 
-        "Admin_Supervisor": admin_supervisor_fixed, 
         "Service_Provider": service_provider, 
-        "Admin_Staff": admin_staff
     } 
 
 DEPARTMENTS = {
@@ -75,7 +74,7 @@ DEPARTMENTS = {
 
 st.set_page_config(page_title="مخطط القوى العاملة للحج", layout="wide", page_icon=None) 
 
-# 📌📌📌 كود CSS لحقن دعم RTL القوي 
+# كود CSS لحقن دعم RTL القوي 
 st.markdown("""
 <style>
 /* تفعيل RTL على جميع النصوص والمكونات */
@@ -90,7 +89,6 @@ section[data-testid="stSidebar"] {
 }
 </style>
 """, unsafe_allow_html=True)
-# 📌📌📌 نهاية كود CSS
 
 # العنوان الرئيسي
 st.title("أداة تخطيط القوى العاملة الذكية")
@@ -105,7 +103,7 @@ st.sidebar.image("logo.png", use_column_width=True)
 
 st.sidebar.header("1. الإعدادات العامة")
 
-# 📌 مدخلات عدد الحجاج الجديدة
+# مدخلات عدد الحجاج الجديدة
 num_hajjaj_present = st.sidebar.number_input(
     "1. إجمالي عدد الحجاج (المتواجدين)", 
     min_value=1, value=5000, step=100, 
@@ -172,7 +170,7 @@ with st.container(border=True):
         with col:
             st.markdown(f"***_{name}_***") 
             
-            # 📌 إضافة خيار تحديد المعيار: تواجد أو تدفق
+            # إضافة خيار تحديد المعيار: تواجد أو تدفق
             default_crit = dept.get('default_criterion', 'Present')
             criterion_label = "معيار الاحتساب الرئيسي"
             criterion_key = f"criterion_{department_type_choice}_{name}_{i}"
@@ -231,6 +229,7 @@ if calculate_button:
     all_results = []
     total_staff_needed = 0
 
+    # 📌 تم حذف وظيفتي "مشرف اداري" و "اداري" من الترجمة
     TRANSLATION_MAP = {
         "Head": "رئيس", 
         "Assistant_Head": "مساعد رئيس", 
@@ -320,9 +319,10 @@ if calculate_button:
     st.subheader(f"نتائج الاحتياج للقوى العاملة والتوزيع الوظيفي لـ {department_type_choice}")
     st.markdown("يتم تطبيق نسبة الاحتياط على **المجموع الإجمالي** لكل إدارة.")
 
+    # 📌 تم حذف وظيفتي "مشرف اداري" و "اداري" من قائمة عرض الأعمدة
     column_order = [
-        "رئيس", "مساعد رئيس", "مشرف اداري", "مشرف ميداني", 
-        "مقدم خدمة", "اداري", "المجموع الإجمالي (بالاحتياط)" 
+        "رئيس", "مساعد رئيس", "مشرف ميداني", 
+        "مقدم خدمة", "المجموع الإجمالي (بالاحتياط)" 
     ]
     
     df = pd.DataFrame(all_results)
