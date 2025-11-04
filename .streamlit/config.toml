@@ -6,7 +6,7 @@ primaryColor = "#004085"
 backgroundColor = "#F5F5F5" 
 
 # لون خلفية الشريط الجانبي (Sidebar)
-secondaryBackgroundColor = "#FFFFFF" 
+secondaryBackgroundColor = "#7a3a00" 
 
 # لون الخط الأساسي (يؤثر على خطوط Sidebar غير النشطة)
 textColor = "#333333" 
