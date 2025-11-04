@@ -72,4 +72,35 @@ department_type_choice = st.sidebar.selectbox(
 
 num_hajjaj = st.sidebar.number_input("عدد الحجاج الإجمالي", min_value=1, value=3000, step=100) 
 service_days = st.sidebar.number_input("فترة الخدمة الإجمالية (بالأيام)", min_value=1, value=6)
-staff_work_hours_day = st.sidebar.number_input("ساعات عمل الموظف اليومية", min_value
+# ****** تم تصحيح هذا السطر ******
+staff_work_hours_day = st.sidebar.number_input("ساعات عمل الموظف اليومية", min_value=1, max_value=16, value=8)
+reserve_factor_input = st.sidebar.slider("نسبة الاحتياط الإجمالي (%)", min_value=0, max_value=50, value=15)
+reserve_factor = reserve_factor_input / 100 
+
+
+# --- المدخلات الخاصة بالهيكل الإداري (التوزيع الهرمي) ---
+st.sidebar.header("2. معايير الهيكل الإداري")
+st.sidebar.markdown('**نسب الإشراف (للتوزيع الهرمي)**')
+ratio_supervisor = st.sidebar.number_input("مقدم خدمة / مشرف", min_value=1, value=8)
+ratio_assistant_head = st.sidebar.number_input("مشرف / مساعد رئيس", min_value=1, value=4)
+ratio_head = st.sidebar.number_input("مساعد رئيس / رئيس", min_value=1, value=3)
+
+
+# -------------------------------------------------------------------
+# القسم الثاني: مدخلات الإدارات حسب النوع المختار
+# -------------------------------------------------------------------
+
+st.sidebar.header(f"3. معايير {department_type_choice}")
+
+ratios = {} 
+time_based_inputs = {} 
+bus_ratio_inputs = {} 
+
+for dept in DEPARTMENTS[department_type_choice]:
+    name = dept['name']
+    
+    if dept['type'] == 'Ratio':
+        ratios[name] = st.sidebar.number_input(f"{name} (حاج / موظف)", min_value=1, value=dept['default_ratio'])
+    
+    elif dept['type'] == 'Time':
+        time_based_inputs[name] = st.sidebar.number_input(f"{name} (دقيقة
