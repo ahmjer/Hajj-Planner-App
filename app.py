@@ -63,8 +63,9 @@ DEPARTMENTS = {
     ],
     "الإسناد والدعم": [
         {"name": "المتابعة ميدانية", "type": "Ratio", "default_ratio": 100, "default_coverage": 100},
-        {"name": "الدعم والضيافة", "type": "Ratio", "default_ratio": 80, "default_coverage": 100},
-        {"name": "الزيارة وإرشاد التأهيين", "type": "Time", "default_time": 2.5, "default_coverage": 100}, 
+        {"name": "الاسكان والطوارئ", "type": "Ratio", "default_ratio": 100, "default_coverage": 100},
+        {"name": "الدعم والضيافة", "type": "Ratio", "default_ratio": 100, "default_coverage": 100},
+        {"name": "الزيارة وإرشاد التأهيين", "type":  "Ratio", "default_ratio": 100, "default_coverage": 100}, 
         {"name": "الرعاية صحية", "type": "Ratio", "default_ratio": 200, "default_coverage": 100},
     ]
 } 
