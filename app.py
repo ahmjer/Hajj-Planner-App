@@ -9,12 +9,10 @@ import pandas as pd
 # ثوابت عامة 
 TOTAL_WORK_HOURS = 24
 SUPERVISORS_PER_SHIFT = 1
-ASSISTANT_HEADS_PER_SHIFT = 1 # 📌 ثابت جديد: مساعد رئيس واحد لكل فترة
+ASSISTANT_HEADS_PER_SHIFT = 1 
 
 # تم إبقاء هذا الثابت للرئيس، بالرغم من أننا سنستخدم 1 ثابتة
 DEFAULT_HEAD_ASSISTANT_RATIO = 4 
-
-# 📌 تم حذف FIELD_SUPERVISORS_PER_LOCATION لأنه سيُحتسب ديناميكياً
 
 
 def calculate_time_based_staff(total_events, time_per_event_min, service_days, staff_work_hours_day, reserve_factor):
@@ -29,13 +27,13 @@ def calculate_ratio_based_staff(num_hajjaj_in_center, ratio, reserve_factor):
     basic_staff = math.ceil(num_hajjaj_in_center / ratio)
     return {'Basic': basic_staff, 'Total': basic_staff, 'CalcType': 'Ratio'}
 
-# 📌 تم إضافة معامل shifts لتلقي عدد الفترات من الواجهة
+# 📌 دالة التوزيع المحدثة: تستخدم 'shifts' لحساب المشرف الميداني ومساعد الرئيس
 def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, shifts):
     service_provider = total_basic_staff  
     
     # 📌 التعديل الأول: المشرف الميداني يحسب بناءً على عدد الفترات
     field_supervisor_fixed = SUPERVISORS_PER_SHIFT * shifts 
-    admin_supervisor_fixed = 0 
+    admin_supervisor_fixed = 0 # 📌 أبقيناه 0 كما اتفقنا لعدم وجود معيار إداري واضح حالياً
     
     total_hierarchical_supervisors = math.ceil(service_provider / ratio_supervisor)
     
@@ -46,8 +44,8 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, 
     assistant_head_fixed = ASSISTANT_HEADS_PER_SHIFT * shifts
     assistant_head = max(assistant_head_fixed, math.ceil(total_supervisors / ratio_assistant_head))
     
-    # تم تثبيت الرئيس بـ 1
-    head = 1 
+    # تم تثبيت الرئيس والكادر الإداري
+    head = 1  
     admin_staff = 1 
     
     return {
@@ -84,8 +82,20 @@ DEPARTMENTS = {
 
 st.set_page_config(page_title="🕋 مخطط القوى العاملة للحج", layout="wide") 
 
-st.title("🕋 أداة تخطيط القوى العاملة الذكية")
+# 📌 بداية التعديل: إضافة الشعار والعنوان في عمودين
+col_logo, col_title = st.columns([1, 6]) # تقسيم الصفحة لعمود صغير للشعار وعمود كبير للعنوان
+
+with col_logo:
+    # تأكد من وجود ملف شعارك (مثلاً logo.png) في نفس مجلد app.py
+    # يمكنك تعديل العرض (width) ليناسب شعارك
+    st.image("logo.png", width=100) 
+
+with col_title:
+    st.title("🕋 أداة تخطيط القوى العاملة الذكية")
+    
 st.markdown("---")
+# 📌 نهاية التعديل: الشعار والعنوان
+
 
 # -------------------------------------------------------------------
 # القسم الأول: الإعدادات العامة ونوع الإدارة (في الشريط الجانبي)
@@ -104,7 +114,7 @@ reserve_factor = reserve_factor_input / 100
 st.sidebar.header("2. معايير الهيكل الإداري")
 st.sidebar.markdown('**نسب الإشراف (للتوزيع الهرمي)**')
 
-# 📌 إضافة مدخل اختيار الفترات هنا
+# 📌 مدخل اختيار الفترات
 shifts_count = st.sidebar.selectbox(
     "عدد فترات العمل اليومية المطلوبة",
     options=[1, 2, 3],
@@ -118,7 +128,7 @@ ratio_assistant_head = st.sidebar.number_input("مشرف / مساعد رئيس (
 
 
 # -------------------------------------------------------------------
-# 📌 القسم الثاني: مدخلات الإدارات (في الجزء العلوي من الصفحة الرئيسية)
+# القسم الثاني: مدخلات الإدارات (في الجزء العلوي من الصفحة الرئيسية)
 # -------------------------------------------------------------------
 
 st.subheader("3. تحديد الإدارة ومعايير الاحتساب")
@@ -207,7 +217,6 @@ if calculate_button:
         actual_hajjaj_in_center = num_hajjaj * coverage_percentages[dept]
         
         res_basic = calculate_ratio_based_staff(actual_hajjaj_in_center, ratio, 0) 
-        # 📌 تم تمرير عدد الفترات
         staff_breakdown = distribute_staff(res_basic['Basic'], ratio_supervisor, ratio_assistant_head, shifts_count)
         
         total_staff_in_hierarchy = sum(staff_breakdown.values())
@@ -229,7 +238,6 @@ if calculate_button:
         bus_ratio = bus_inputs['Ratio'] 
         
         res_basic_buses = calculate_ratio_based_staff(num_units, bus_ratio, 0) 
-        # 📌 تم تمرير عدد الفترات
         staff_breakdown_buses = distribute_staff(res_basic_buses['Basic'], ratio_supervisor, ratio_assistant_head, shifts_count)
         
         total_staff_in_hierarchy = sum(staff_breakdown_buses.values())
@@ -249,9 +257,9 @@ if calculate_button:
     for dept, time_min in time_based_inputs.items():
         actual_hajjaj_in_center = num_hajjaj * coverage_percentages[dept]
         
+        # 📌 ضرب الحجاج في 2 هنا يعكس تقدير الذهاب والإياب أو نقطتي خدمة
         res_basic_time = calculate_time_based_staff(actual_hajjaj_in_center * 2, time_min, service_days, staff_work_hours_day, 0)
         
-        # 📌 تم تمرير عدد الفترات
         staff_breakdown_time = distribute_staff(res_basic_time['Basic'], ratio_supervisor, ratio_assistant_head, shifts_count)
         
         total_staff_in_hierarchy = sum(staff_breakdown_time.values())
@@ -278,7 +286,7 @@ if calculate_button:
 
     column_order = [
         "رئيس", "مساعد رئيس", "مشرف اداري", "مشرف ميداني", 
-        "مقدم خدمة", "المجموع الإجمالي (بالاحتياط)"
+        "مقدم خدمة", "اداري", "المجموع الإجمالي (بالاحتياط)" 
     ]
     
     df = pd.DataFrame(all_results)
