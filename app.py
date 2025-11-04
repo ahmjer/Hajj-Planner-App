@@ -3,56 +3,72 @@ import math
 import pandas as pd
 
 # -------------------------------------------------------------------
-# الدالة الرئيسية للحساب (Logic)
+# الدوال المساعدة للحساب (Logic)
 # -------------------------------------------------------------------
 
-def calculate_staff_needs_v2(
-    num_hajjaj: int,
-    service_days: int,
-    staff_work_hours_day: int,
-    reserve_factor: float,
-    logistics_time_per_hajjaj_min: float,
-    on_site_ratio: int
-):
-    """تحسب الاحتياج للقوى العاملة بناءً على التدفق الزمني والتغطية المباشرة."""
-
-    # 1. حساب الإدارة الأولى: اللوجستيات (وصول ومغادرة)
-    # نعتبر أن كل حاج لديه حدثان: وصول ومغادرة
-    total_logistics_events = num_hajjaj * 2 
-    logistics_time_per_hajjaj_hrs = logistics_time_per_hajjaj_min / 60
-    total_logistics_hours_needed = total_logistics_events * logistics_time_per_hajjaj_hrs
+def calculate_time_based_staff(total_events, time_per_event_min, service_days, staff_work_hours_day, reserve_factor):
+    """تحسب القوى العاملة للإدارات التي تعتمد على الزمن (مثل الاستقبال)."""
+    
+    time_per_event_hrs = time_per_event_min / 60
+    total_hours_needed = total_events * time_per_event_hrs
     total_staff_available_hours = service_days * staff_work_hours_day
     
     if total_staff_available_hours > 0:
-        # عدد الموظفين الأساسيين لإنهاء المهام الزمنية
-        basic_logistics_staff = math.ceil(total_logistics_hours_needed / total_staff_available_hours)
+        basic_staff = math.ceil(total_hours_needed / total_staff_available_hours)
     else:
-        basic_logistics_staff = 0
+        basic_staff = 0
     
-    # إجمالي موظفي اللوجستيات بعد إضافة الاحتياط
-    total_logistics_staff = math.ceil(basic_logistics_staff * (1 + reserve_factor))
+    total_staff = math.ceil(basic_staff * (1 + reserve_factor))
+    return {'Basic': basic_staff, 'Total': total_staff, 'CalcType': 'Time'}
 
-    # 2. حساب الإدارة الثانية: الإشراف الميداني (تغطية المتواجدين فعلياً)
-    # عدد موظفي الإشراف الأساسيين (حسب نسبة التغطية)
-    basic_on_site_staff = math.ceil(num_hajjaj / on_site_ratio)
+def calculate_ratio_based_staff(num_hajjaj, ratio, reserve_factor):
+    """تحسب القوى العاملة للإدارات التي تعتمد على التغطية (حاج/موظف)."""
     
-    # إجمالي موظفي الإشراف بعد إضافة الاحتياط
-    total_on_site_staff = math.ceil(basic_on_site_staff * (1 + reserve_factor))
+    basic_staff = math.ceil(num_hajjaj / ratio)
+    total_staff = math.ceil(basic_staff * (1 + reserve_factor))
+    return {'Basic': basic_staff, 'Total': total_staff, 'CalcType': 'Ratio'}
+
+def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, ratio_head):
+    """
+    توزيع إجمالي الاحتياج (المقدمين) إلى الهرم الإداري.
+    """
+    
+    # 1. مقدم الخدمة هو الاحتياج الأساسي (الباقي بعد التوزيع يعتبر إداري/دعم)
+     مقدم_خدمة = total_basic_staff
+    
+    # 2. المشرفون (ميداني وإداري)
+    # يتم حساب المشرفين بناءً على عدد مقدمي الخدمة
+    مشرفون = math.ceil( مقدم_خدمة / ratio_supervisor)
+    
+    # 3. مساعدو الرؤساء
+    # يتم حساب مساعدي الرؤساء بناءً على عدد المشرفين
+    مساعد_رئيس = math.ceil( مشرفون / ratio_assistant_head)
+    
+    # 4. الرؤساء
+    # يتم حساب الرؤساء بناءً على عدد مساعدي الرؤساء
+    رئيس = math.ceil( مساعد_رئيس / ratio_head)
+
+    # 5. الإداريون (وظائف الدعم غير المباشر): يمكن أن يكون جزء ثابت أو يحسب من الباقي
+    # في هذا المثال، نفترض وظائف إدارية بسيطة ثابتة لكل إدارة
+    إداري = 1 
     
     return {
-        "Logistics_Basic": basic_logistics_staff,
-        "Logistics_Total": total_logistics_staff,
-        "OnSite_Basic": basic_on_site_staff,
-        "OnSite_Total": total_on_site_staff
+        'مقدم_خدمة': total_basic_staff, # الاحتياج الأساسي
+        'مشرف_ميداني': math.ceil(مشرفون * 0.7), # توزيع المشرفين بنسبة 70/30 (ميداني/إداري)
+        'مشرف_إداري': مشرفون - math.ceil(مشرفون * 0.7), 
+        'مساعد_رئيس': مساعد_رئيس,
+        'رئيس': رئيس,
+        'إداري': إداري # يمكن أن يمثل الدعم الإداري للإدارة
     }
+
 
 # -------------------------------------------------------------------
 # واجهة المستخدم (Streamlit UI)
 # -------------------------------------------------------------------
 
-st.set_page_config(page_title="🕋 مخطط القوى العاملة للحج", layout="wide")
+st.set_page_config(page_title="🕋 مخطط القوى العاملة للحج (بالهيكلة الوظيفية)", layout="wide")
 
-st.title("🕋 أداة تخطيط القوى العاملة الذكية")
+st.title("🕋 أداة تخطيط القوى العاملة الذكية (بالهيكلة الوظيفية)")
 st.markdown("---")
 
 st.sidebar.header("1. الإعدادات العامة للبعثة")
@@ -61,38 +77,132 @@ st.sidebar.header("1. الإعدادات العامة للبعثة")
 num_hajjaj = st.sidebar.number_input("عدد الحجاج الإجمالي", min_value=1, value=3000, step=100)
 service_days = st.sidebar.number_input("فترة الخدمة الإجمالية (بالأيام)", min_value=1, value=6)
 staff_work_hours_day = st.sidebar.number_input("ساعات عمل الموظف اليومية", min_value=1, max_value=16, value=8)
-reserve_factor_input = st.sidebar.slider("نسبة الاحتياط / الدعم (%)", min_value=0, max_value=50, value=15)
+reserve_factor_input = st.sidebar.slider("نسبة الاحتياط الإجمالي (%)", min_value=0, max_value=50, value=15)
 reserve_factor = reserve_factor_input / 100 # تحويل لكسر عشري
 
-st.sidebar.header("2. معايير الإدارة الأولى (اللوجستيات - التدفق)")
-logistics_time_per_hajjaj_min = st.sidebar.number_input("وقت خدمة الحدث الواحد (بالدقيقة)", min_value=0.5, value=3.0, step=0.5, help="الوقت اللازم لإنهاء وصول أو مغادرة حاج واحد.")
 
-st.sidebar.header("3. معايير الإدارة الثانية (الإشراف الميداني - التغطية)")
-on_site_ratio = st.sidebar.number_input("معيار تغطية الإشراف (حاج / موظف)", min_value=1, value=40, help="عدد الحجاج الذي يغطيهم موظف إشراف واحد بفعالية.")
+# --- المدخلات الخاصة بالهيكل الإداري (التوزيع الهرمي) ---
+st.sidebar.header("2. معايير الهيكل الإداري")
+st.sidebar.markdown('**نسب الإشراف (للتوزيع الهرمي)**')
+ratio_supervisor = st.sidebar.number_input("مقدم خدمة / مشرف", min_value=1, value=8)
+ratio_assistant_head = st.sidebar.number_input("مشرف / مساعد رئيس", min_value=1, value=4)
+ratio_head = st.sidebar.number_input("مساعد رئيس / رئيس", min_value=1, value=3)
 
-st.subheader("نتائج الاحتياج للقوى العاملة")
 
-# تنفيذ الحساب
-results = calculate_staff_needs_v2(
-    num_hajjaj, service_days, staff_work_hours_day, reserve_factor,
-    logistics_time_per_hajjaj_min, on_site_ratio
-)
+# --- المدخلات الخاصة بالإدارات (التغطية والزمن) ---
+st.sidebar.header("3. معايير التغطية والتدفق")
+# (تم تبسيط المدخلات الإدارية هنا لتوفير المساحة، يمكنك توسيعها حسب الحاجة)
 
-# عرض النتائج في جدول
-data = {
-    'نوع الإدارة': ['1. اللوجستيات (وصول/مغادرة)', '2. الإشراف الميداني (تغطية المتواجدين)'],
-    'الاحتياج الأساسي': [results['Logistics_Basic'], results['OnSite_Basic']],
-    'إجمالي الاحتياج (شاملاً الاحتياط)': [results['Logistics_Total'], results['OnSite_Total']],
-    'نسبة الاحتياط المطبقة': [f"{reserve_factor*100:.0f}%", f"{reserve_factor*100:.0f}%"]
-}
+# معايير التغطية (Ratio-based)
+st.sidebar.subheader("معايير التغطية (حاج/موظف)")
+ratios = {}
+ratios['مركز الضيافة'] = st.sidebar.number_input("مركز الضيافة (حاج / موظف)", min_value=1, value=75)
+ratios['الخدمات الميدانية والإسكان'] = st.sidebar.number_input("الإسكان (حاج / موظف)", min_value=1, value=50)
+ratios['المتابعة الميدانية'] = st.sidebar.number_input("المتابعة (حاج / موظف)", min_value=1, value=100)
+ratios['الدعم والضيافة'] = st.sidebar.number_input("الدعم (حاج / موظف)", min_value=1, value=80)
+ratios['التوجيه'] = st.sidebar.number_input("التوجيه (حاج / موظف)", min_value=1, value=90)
+ratios['الرعاية الصحية'] = st.sidebar.number_input("الرعاية الصحية (حاج / موظف)", min_value=1, value=200)
 
-df = pd.DataFrame(data)
+# معايير الحافلات
+st.sidebar.subheader("إرشاد الحافلات (معيار خاص)")
+num_buses = st.sidebar.number_input("عدد الحافلات المتوقعة", min_value=1, value=20)
+buses_per_staff = st.sidebar.number_input("حافلة / موظف إرشاد", min_value=1, value=2)
 
-st.dataframe(df.style.highlight_max(axis=0), use_container_width=True)
+# معايير الزمن (Time-based)
+st.sidebar.subheader("معايير التدفق الزمني (دقيقة/حدث)")
+time_based_inputs = {}
+time_based_inputs['استقبال الهجرة'] = st.sidebar.number_input("استقبال الهجرة (دقيقة/حاج)", min_value=0.5, value=2.0, step=0.1)
+time_based_inputs['استقبال المطار'] = st.sidebar.number_input("استقبال المطار (دقيقة/حاج)", min_value=0.5, value=3.0, step=0.1)
+time_based_inputs['استقبال القطار'] = st.sidebar.number_input("استقبال القطار (دقيقة/حاج)", min_value=0.5, value=1.5, step=0.1)
+time_based_inputs['الزيارة وإرشاد التأهيل'] = st.sidebar.number_input("الزيارة (دقيقة/حاج)", min_value=0.5, value=2.5, step=0.1) # تم تحويله إلى زمني هنا
+
+
+# -------------------------------------------------------------------
+# تنفيذ الحسابات والتوزيع
+# -------------------------------------------------------------------
+
+all_results = []
+total_staff_needed = 0
+
+# أ. حساب الإدارات المعتمدة على التغطية (حاج / موظف)
+for dept, ratio in ratios.items():
+    res_basic = calculate_ratio_based_staff(num_hajjaj, ratio, 0) # نحسب الأساسي بدون احتياط أولا
+    staff_breakdown = distribute_staff(res_basic['Basic'], ratio_supervisor, ratio_assistant_head, ratio_head)
+    
+    # نطبق الاحتياط على الإجمالي ونعرض التوزيع الأساسي فقط
+    total_needed_with_reserve = math.ceil(sum(staff_breakdown.values()) * (1 + reserve_factor))
+    
+    all_results.append({
+        'الإدارة': dept, 
+        'رئيس': staff_breakdown['رئيس'], 
+        'مساعد رئيس': staff_breakdown['مساعد_رئيس'],
+        'مشرف إداري': staff_breakdown['مشرف_إداري'],
+        'مشرف ميداني': staff_breakdown['مشرف_ميداني'],
+        'مقدم خدمة': staff_breakdown['مقدم_خدمة'],
+        'إداري': staff_breakdown['إداري'],
+        'المجموع الإجمالي (بالاحتياط)': total_needed_with_reserve
+    })
+    total_staff_needed += total_needed_with_reserve
+
+
+# ب. حساب إرشاد الحافلات (معيار خاص)
+res_basic_buses = calculate_ratio_based_staff(num_buses, buses_per_staff, 0) 
+staff_breakdown_buses = distribute_staff(res_basic_buses['Basic'], ratio_supervisor, ratio_assistant_head, ratio_head)
+total_needed_buses = math.ceil(sum(staff_breakdown_buses.values()) * (1 + reserve_factor))
+
+all_results.append({
+    'الإدارة': 'إرشاد الحافلات', 
+    'رئيس': staff_breakdown_buses['رئيس'], 
+    'مساعد رئيس': staff_breakdown_buses['مساعد_رئيس'],
+    'مشرف إداري': staff_breakdown_buses['مشرف_إداري'],
+    'مشرف ميداني': staff_breakdown_buses['مشرف_ميداني'],
+    'مقدم خدمة': staff_breakdown_buses['مقدم_خدمة'],
+    'إداري': staff_breakdown_buses['إداري'],
+    'المجموع الإجمالي (بالاحتياط)': total_needed_buses
+})
+total_staff_needed += total_needed_buses
+
+
+# ج. حساب الإدارات المعتمدة على الزمن (Time-based)
+for dept, time_min in time_based_inputs.items():
+    res_basic_time = calculate_time_based_staff(num_hajjaj * 2, time_min, service_days, staff_work_hours_day, 0)
+    staff_breakdown_time = distribute_staff(res_basic_time['Basic'], ratio_supervisor, ratio_assistant_head, ratio_head)
+    total_needed_time = math.ceil(sum(staff_breakdown_time.values()) * (1 + reserve_factor))
+
+    all_results.append({
+        'الإدارة': dept, 
+        'رئيس': staff_breakdown_time['رئيس'], 
+        'مساعد رئيس': staff_breakdown_time['مساعد_رئيس'],
+        'مشرف إداري': staff_breakdown_time['مشرف_إداري'],
+        'مشرف ميداني': staff_breakdown_time['مشرف_ميداني'],
+        'مقدم خدمة': staff_breakdown_time['مقدم_خدمة'],
+        'إداري': staff_breakdown_time['إداري'],
+        'المجموع الإجمالي (بالاحتياط)': total_needed_time
+    })
+    total_staff_needed += total_needed_time
+
+
+# -------------------------------------------------------------------
+# عرض النتائج
+# -------------------------------------------------------------------
+
+st.subheader("نتائج الاحتياج للقوى العاملة والتوزيع الوظيفي")
+st.markdown("يتم تطبيق نسبة الاحتياط على **المجموع الإجمالي** لكل إدارة.")
+
+# إنشاء جدول النتائج
+df = pd.DataFrame(all_results)
+df = df.set_index('الإدارة') 
+
+st.dataframe(df.style.background_gradient(cmap='Blues', subset=['المجموع الإجمالي (بالاحتياط)']), use_container_width=True)
 
 st.markdown("---")
-st.metric(
-    label="**الإجمالي الكلي للقوى العاملة المطلوبة للخدمات المباشرة**",
-    value=f"{results['Logistics_Total'] + results['OnSite_Total']} موظف",
-    delta=f"الاحتياج الأساسي (قبل الاحتياط): {results['Logistics_Basic'] + results['OnSite_Basic']} موظف"
-)
+
+# عرض الإجمالي
+col1, col2 = st.columns(2)
+with col1:
+    st.metric(
+        label="**المجموع الكلي للقوى العاملة المطلوبة للشركة**",
+        value=f"{total_staff_needed} موظف",
+    )
+with col2:
+    st.info(f"نسبة الاحتياط الإجمالية المطبقة: {reserve_factor_input}%")
