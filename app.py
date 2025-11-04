@@ -50,25 +50,24 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head):
         "Admin_Staff": admin_staff
     } 
 
-# 📌 تم تعديل تنسيق القاموس لضمان إغلاق القوس المعكوف
+# 📌 تم إعادة ترجمة أسماء الإدارات والفروع إلى العربية
 DEPARTMENTS = {
-    "Hospitality": [
-        {"name": "Hospitality Center", "type": "Ratio", "default_ratio": 75, "default_coverage": 100}, 
+    "الضيافة": [
+        {"name": "مركز الضيافة", "type": "Ratio", "default_ratio": 75, "default_coverage": 100}, 
     ],
-    "Arrival_Departure": [
-        {"name": "Migration Reception", "type": "Ratio", "default_ratio": 100, "default_coverage": 30},
-        {"name": "Airport Reception", "type": "Ratio", "default_ratio": 100, "default_coverage": 50},
-        {"name": "Train Reception", "type": "Ratio", "default_ratio": 100, "default_coverage": 20},
-        {"name": "Bus Guidance", "type": "Bus_Ratio", "default_ratio": 2}, 
+    "الوصول والمغادرة": [
+        {"name": "استقبال الهجرة", "type": "Ratio", "default_ratio": 100, "default_coverage": 30},
+        {"name": "استقبال المطار", "type": "Ratio", "default_ratio": 100, "default_coverage": 50},
+        {"name": "استقبال القطار", "type": "Ratio", "default_ratio": 100, "default_coverage": 20},
+        {"name": "توجيه الحافلات", "type": "Bus_Ratio", "default_ratio": 2}, 
     ],
-    "Support": [
-        {"name": "Field Follow-up", "type": "Ratio", "default_ratio": 100, "default_coverage": 100},
-        {"name": "Support and Hospitality", "type": "Ratio", "default_ratio": 80, "default_coverage": 100},
-        {"name": "Guidance", "type": "Ratio", "default_ratio": 90, "default_coverage": 100},
-        {"name": "Visit/Rehabilitation Guidance", "type": "Time", "default_time": 2.5, "default_coverage": 100}, 
-        {"name": "Health Care", "type": "Ratio", "default_ratio": 200, "default_coverage": 100},
+    "الإسناد والدعم": [
+        {"name": "المتابعة ميدانية", "type": "Ratio", "default_ratio": 100, "default_coverage": 100},
+        {"name": "الدعم والضيافة", "type": "Ratio", "default_ratio": 80, "default_coverage": 100},
+        {"name": "الزيارة وإرشاد التأهيين", "type": "Time", "default_time": 2.5, "default_coverage": 100}, 
+        {"name": "الرعاية صحية", "type": "Ratio", "default_ratio": 200, "default_coverage": 100},
     ]
-} # 📌 القوس المغلق تم التأكيد عليه
+} 
 
 # -------------------------------------------------------------------
 # الواجهة الرئيسية (Streamlit UI)
