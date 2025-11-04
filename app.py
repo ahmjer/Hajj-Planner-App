@@ -38,7 +38,10 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head):
     
     assistant_head = math.ceil(total_supervisors / ratio_assistant_head)
     
-    head = math.ceil(assistant_head / DEFAULT_HEAD_ASSISTANT_RATIO) 
+    # 📌 التعديل المطلوب: تثبيت عدد الرؤساء على 1
+    head = 1 
+    # head = math.ceil(assistant_head / DEFAULT_HEAD_ASSISTANT_RATIO) # تم إلغاء هذه السطر 
+    
     admin_staff = 1 
     
     return {
@@ -95,7 +98,7 @@ reserve_factor = reserve_factor_input / 100
 # --- المدخلات الخاصة بالهيكل الإداري (التوزيع الهرمي) ---
 st.sidebar.header("2. معايير الهيكل الإداري")
 st.sidebar.markdown('**نسب الإشراف (للتوزيع الهرمي)**')
-st.sidebar.markdown(f"**ملاحظة:** نسبة [مساعد رئيس / رئيس] تم تثبيتها بـ **1:{DEFAULT_HEAD_ASSISTANT_RATIO}**")
+st.sidebar.markdown(f"**ملاحظة:** تم تثبيت عدد **الرؤساء** بـ **1** لكل إدارة.")
 
 ratio_supervisor = st.sidebar.number_input("مقدم خدمة / مشرف", min_value=1, value=8, key="ratio_supervisor")
 ratio_assistant_head = st.sidebar.number_input("مشرف / مساعد رئيس", min_value=1, value=4, key="ratio_assistant_head")
