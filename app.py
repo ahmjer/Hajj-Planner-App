@@ -50,7 +50,7 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head):
         "Admin_Staff": admin_staff
     } 
 
-# 📌 تم إعادة ترجمة أسماء الإدارات والفروع إلى العربية
+# تم استخدام مفاتيح إنجليزية لتجاوز مشكلة قطع السلاسل النصية العربية 
 DEPARTMENTS = {
     "الضيافة": [
         {"name": "مركز الضيافة", "type": "Ratio", "default_ratio": 75, "default_coverage": 100}, 
@@ -62,11 +62,11 @@ DEPARTMENTS = {
         {"name": "توجيه الحافلات", "type": "Bus_Ratio", "default_ratio": 2}, 
     ],
     "الإسناد والدعم": [
-        {"name": "المتابعة ميدانية", "type": "Ratio", "default_ratio": 100, "default_coverage": 100},
-        {"name": "الاسكان والطوارئ", "type": "Ratio", "default_ratio": 100, "default_coverage": 100},
-        {"name": "الدعم والضيافة", "type": "Ratio", "default_ratio": 100, "default_coverage": 100},
-        {"name": "الزيارة وإرشاد التأهيين", "type":  "Ratio", "default_ratio": 100, "default_coverage": 100}, 
-        {"name": "الرعاية صحية", "type": "Ratio", "default_ratio": 200, "default_coverage": 100},
+        {"name": "متابعة ميدانية", "type": "Ratio", "default_ratio": 100, "default_coverage": 100},
+        {"name": "الدعم والضيافة", "type": "Ratio", "default_ratio": 80, "default_coverage": 100},
+        {"name": "الإرشاد", "type": "Ratio", "default_ratio": 90, "default_coverage": 100},
+        {"name": "إرشاد الزيارة/التأهيل", "type": "Time", "default_time": 2.5, "default_coverage": 100}, 
+        {"name": "رعاية صحية", "type": "Ratio", "default_ratio": 200, "default_coverage": 100},
     ]
 } 
 
@@ -80,16 +80,10 @@ st.title("🕋 أداة تخطيط القوى العاملة الذكية")
 st.markdown("---")
 
 # -------------------------------------------------------------------
-# القسم الأول: الإعدادات العامة ونوع الإدارة
+# القسم الأول: الإعدادات العامة ونوع الإدارة (في الشريط الجانبي)
 # -------------------------------------------------------------------
 
 st.sidebar.header("1. الإعدادات العامة")
-
-department_type_choice = st.sidebar.selectbox(
-    "اختر نوع الإدارة المراد حسابه:",
-    options=list(DEPARTMENTS.keys()),
-    key="dept_type" 
-)
 
 num_hajjaj = st.sidebar.number_input("عدد الحجاج الإجمالي", min_value=1, value=3000, step=100, key="num_hajjaj")
 service_days = st.sidebar.number_input("فترة الخدمة الإجمالية (بالأيام)", min_value=1, value=6, key="service_days")
@@ -108,49 +102,68 @@ ratio_assistant_head = st.sidebar.number_input("مشرف / مساعد رئيس",
 
 
 # -------------------------------------------------------------------
-# القسم الثاني: مدخلات الإدارات حسب النوع المختار 
+# 📌 القسم الثاني: مدخلات الإدارات (في الجزء العلوي من الصفحة الرئيسية)
 # -------------------------------------------------------------------
 
-st.sidebar.header(f"3. معايير {department_type_choice}")
+# 📌 نقل اختيار الإدارة إلى أعلى الصفحة الرئيسية (بشكل قائمة منسدلة علوية)
+st.subheader("3. تحديد الإدارة ومعايير الاحتساب")
+department_type_choice = st.selectbox(
+    "اختر نوع الإدارة المراد حسابه:",
+    options=list(DEPARTMENTS.keys()),
+    key="dept_type_main_select" # مفتاح جديد
+)
 
-ratios = {} 
-time_based_inputs = {} 
-bus_ratio_inputs = {} 
-coverage_percentages = {} 
-
-for i, dept in enumerate(DEPARTMENTS[department_type_choice]):
-    name = dept['name']
-    dept_type = dept['type']
+# 📌 استخدام حاوية للتنظيم
+with st.container(border=True):
+    st.markdown(f"**معايير فروع إدارة: {department_type_choice}**")
     
-    st.sidebar.markdown(f"***_{name}_***") 
+    ratios = {} 
+    time_based_inputs = {} 
+    bus_ratio_inputs = {} 
+    coverage_percentages = {} 
 
-    # A. إدخال نسبة التغطية (لكل ما يعتمد على عدد الحجاج)
-    if dept_type in ['Ratio', 'Time']:
-        default_cov = dept.get('default_coverage', 100)
-        coverage_label = f"نسبة تغطية (%)"
-        coverage_key = f"cov_{department_type_choice}_{name}_{i}"
+    # 📌 تقسيم المدخلات في أعمدة لتقليل المساحة
+    cols = st.columns(3)
+    col_index = 0
+
+    for i, dept in enumerate(DEPARTMENTS[department_type_choice]):
+        name = dept['name']
+        dept_type = dept['type']
         
-        coverage_val = st.sidebar.slider(coverage_label, min_value=0, max_value=100, value=default_cov, key=coverage_key)
-        coverage_percentages[name] = coverage_val / 100 
+        # اختيار العمود التالي
+        col = cols[col_index % 3] 
+        col_index += 1
 
-    # B. إدخال معيار الاحتساب (Ratio/Time/Bus)
-    if dept_type == 'Ratio':
-        label = "المعيار (حاج/موظف)"
-        key_val = f"ratio_{department_type_choice}_{name}_{i}" 
-        ratios[name] = st.sidebar.number_input(label, min_value=1, value=dept['default_ratio'], key=key_val)
-    
-    elif dept_type == 'Time':
-        label = "المعيار (دقيقة/حاج)"
-        key_val = f"time_{department_type_choice}_{name}_{i}" 
-        time_based_inputs[name] = st.sidebar.number_input(label, min_value=0.5, value=dept['default_time'], step=0.1, key=key_val)
+        with col:
+            st.markdown(f"***_{name}_***") 
 
-    elif dept_type == 'Bus_Ratio':
-        bus_inputs = {'Bus_Count': 0, 'Ratio': 0}
-        bus_inputs['Bus_Count'] = st.sidebar.number_input("عدد الحافلات المتوقعة", min_value=1, value=20, key=f"bus_count_{name}_{i}")
-        
-        bus_label = "المعيار (حافلة/موظف)"
-        bus_inputs['Ratio'] = st.sidebar.number_input(bus_label, min_value=1, value=dept['default_ratio'], key=f"bus_ratio_{name}_{i}")
-        bus_ratio_inputs[name] = bus_inputs 
+            # A. إدخال نسبة التغطية (لكل ما يعتمد على عدد الحجاج)
+            if dept_type in ['Ratio', 'Time']:
+                default_cov = dept.get('default_coverage', 100)
+                coverage_label = f"نسبة تغطية (%)"
+                coverage_key = f"cov_{department_type_choice}_{name}_{i}"
+                
+                coverage_val = st.slider(coverage_label, min_value=0, max_value=100, value=default_cov, key=coverage_key)
+                coverage_percentages[name] = coverage_val / 100 
+
+            # B. إدخال معيار الاحتساب (Ratio/Time/Bus)
+            if dept_type == 'Ratio':
+                label = "المعيار (حاج/موظف)"
+                key_val = f"ratio_{department_type_choice}_{name}_{i}" 
+                ratios[name] = st.number_input(label, min_value=1, value=dept['default_ratio'], key=key_val)
+            
+            elif dept_type == 'Time':
+                label = "المعيار (دقيقة/حاج)"
+                key_val = f"time_{department_type_choice}_{name}_{i}" 
+                time_based_inputs[name] = st.number_input(label, min_value=0.5, value=dept['default_time'], step=0.1, key=key_val)
+
+            elif dept_type == 'Bus_Ratio':
+                bus_inputs = {'Bus_Count': 0, 'Ratio': 0}
+                bus_inputs['Bus_Count'] = st.number_input("عدد الحافلات المتوقعة", min_value=1, value=20, key=f"bus_count_{name}_{i}")
+                
+                bus_label = "المعيار (حافلة/موظف)"
+                bus_inputs['Ratio'] = st.number_input(bus_label, min_value=1, value=dept['default_ratio'], key=f"bus_ratio_{name}_{i}")
+                bus_ratio_inputs[name] = bus_inputs 
 
 
 # -------------------------------------------------------------------
@@ -273,4 +286,4 @@ if calculate_button:
     with col2:
         st.info(f"نسبة الاحتياط الإجمالية المطبقة: {reserve_factor_input}%")
 else:
-    st.info(f"يرجى اختيار نوع الإدارة وتعديل المعايير في الشريط الجانبي ثم النقر على زر الحساب لرؤية النتائج لـ {department_type_choice}.")
+    st.info(f"يرجى اختيار نوع الإدارة من القائمة المنسدلة في الأعلى وتعديل المعايير ثم النقر على زر الحساب لرؤية النتائج لـ {department_type_choice}.")
