@@ -6,12 +6,15 @@ import pandas as pd
 # الثوابت والدوال 
 # -------------------------------------------------------------------
 
-# ثوابت المشرف الميداني (تم تأكيدها: فترة 8 ساعات)
-SHIFT_HOURS = 8 
+# ثوابت عامة 
 TOTAL_WORK_HOURS = 24
 SUPERVISORS_PER_SHIFT = 1
-FIELD_SUPERVISORS_PER_LOCATION = math.ceil(TOTAL_WORK_HOURS / SHIFT_HOURS) * SUPERVISORS_PER_SHIFT # 3 مشرفين
-DEFAULT_HEAD_ASSISTANT_RATIO = 4 # رئيس / مساعد رئيس (قيمة افتراضية ثابتة)
+ASSISTANT_HEADS_PER_SHIFT = 1 # 📌 ثابت جديد: مساعد رئيس واحد لكل فترة
+
+# تم إبقاء هذا الثابت للرئيس، بالرغم من أننا سنستخدم 1 ثابتة
+DEFAULT_HEAD_ASSISTANT_RATIO = 4 
+
+# 📌 تم حذف FIELD_SUPERVISORS_PER_LOCATION لأنه سيُحتسب ديناميكياً
 
 
 def calculate_time_based_staff(total_events, time_per_event_min, service_days, staff_work_hours_day, reserve_factor):
@@ -26,22 +29,25 @@ def calculate_ratio_based_staff(num_hajjaj_in_center, ratio, reserve_factor):
     basic_staff = math.ceil(num_hajjaj_in_center / ratio)
     return {'Basic': basic_staff, 'Total': basic_staff, 'CalcType': 'Ratio'}
 
-def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head):
+# 📌 تم إضافة معامل shifts لتلقي عدد الفترات من الواجهة
+def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, shifts):
     service_provider = total_basic_staff  
     
-    field_supervisor_fixed = FIELD_SUPERVISORS_PER_LOCATION 
+    # 📌 التعديل الأول: المشرف الميداني يحسب بناءً على عدد الفترات
+    field_supervisor_fixed = SUPERVISORS_PER_SHIFT * shifts 
     admin_supervisor_fixed = 0 
     
     total_hierarchical_supervisors = math.ceil(service_provider / ratio_supervisor)
     
+    # نأخذ القيمة الأكبر بين الهرم أو التغطية الميدانية الثابتة
     total_supervisors = max(total_hierarchical_supervisors, field_supervisor_fixed)
     
-    assistant_head = math.ceil(total_supervisors / ratio_assistant_head)
+    # 📌 التعديل الثاني: مساعد الرئيس يحسب بناءً على عدد الفترات
+    assistant_head_fixed = ASSISTANT_HEADS_PER_SHIFT * shifts
+    assistant_head = max(assistant_head_fixed, math.ceil(total_supervisors / ratio_assistant_head))
     
-    # 📌 التعديل المطلوب: تثبيت عدد الرؤساء على 1
+    # تم تثبيت الرئيس بـ 1
     head = 1 
-    # head = math.ceil(assistant_head / DEFAULT_HEAD_ASSISTANT_RATIO) # تم إلغاء هذه السطر 
-    
     admin_staff = 1 
     
     return {
@@ -53,7 +59,6 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head):
         "Admin_Staff": admin_staff
     } 
 
-# تم استخدام مفاتيح إنجليزية لتجاوز مشكلة قطع السلاسل النصية العربية 
 DEPARTMENTS = {
     "الضيافة": [
         {"name": "مركز الضيافة", "type": "Ratio", "default_ratio": 75, "default_coverage": 100}, 
@@ -98,25 +103,31 @@ reserve_factor = reserve_factor_input / 100
 # --- المدخلات الخاصة بالهيكل الإداري (التوزيع الهرمي) ---
 st.sidebar.header("2. معايير الهيكل الإداري")
 st.sidebar.markdown('**نسب الإشراف (للتوزيع الهرمي)**')
-st.sidebar.markdown(f"**ملاحظة:** تم تثبيت عدد **الرؤساء** بـ **1** لكل إدارة.")
+
+# 📌 إضافة مدخل اختيار الفترات هنا
+shifts_count = st.sidebar.selectbox(
+    "عدد فترات العمل اليومية المطلوبة",
+    options=[1, 2, 3],
+    index=2, # الافتراض هو 3 فترات عمل يومية
+    key="shifts_count"
+)
+st.sidebar.info(f"مشرف ميداني ومساعد رئيس **سيزيدان** لكل فترة. (1 مشرف / 1 مساعد رئيس لكل فترة)")
 
 ratio_supervisor = st.sidebar.number_input("مقدم خدمة / مشرف", min_value=1, value=8, key="ratio_supervisor")
-ratio_assistant_head = st.sidebar.number_input("مشرف / مساعد رئيس", min_value=1, value=4, key="ratio_assistant_head")
+ratio_assistant_head = st.sidebar.number_input("مشرف / مساعد رئيس (للهرم)", min_value=1, value=4, key="ratio_assistant_head")
 
 
 # -------------------------------------------------------------------
 # 📌 القسم الثاني: مدخلات الإدارات (في الجزء العلوي من الصفحة الرئيسية)
 # -------------------------------------------------------------------
 
-# 📌 نقل اختيار الإدارة إلى أعلى الصفحة الرئيسية (بشكل قائمة منسدلة علوية)
 st.subheader("3. تحديد الإدارة ومعايير الاحتساب")
 department_type_choice = st.selectbox(
     "اختر نوع الإدارة المراد حسابه:",
     options=list(DEPARTMENTS.keys()),
-    key="dept_type_main_select" # مفتاح جديد
+    key="dept_type_main_select"
 )
 
-# 📌 استخدام حاوية للتنظيم
 with st.container(border=True):
     st.markdown(f"**معايير فروع إدارة: {department_type_choice}**")
     
@@ -125,7 +136,6 @@ with st.container(border=True):
     bus_ratio_inputs = {} 
     coverage_percentages = {} 
 
-    # 📌 تقسيم المدخلات في أعمدة لتقليل المساحة
     cols = st.columns(3)
     col_index = 0
 
@@ -133,7 +143,6 @@ with st.container(border=True):
         name = dept['name']
         dept_type = dept['type']
         
-        # اختيار العمود التالي
         col = cols[col_index % 3] 
         col_index += 1
 
@@ -184,7 +193,6 @@ if calculate_button:
     all_results = []
     total_staff_needed = 0
 
-    # جدول ترجمة المفاتيح الإنجليزية إلى العربية للعرض النهائي
     TRANSLATION_MAP = {
         "Head": "رئيس", 
         "Assistant_Head": "مساعد رئيس", 
@@ -199,12 +207,12 @@ if calculate_button:
         actual_hajjaj_in_center = num_hajjaj * coverage_percentages[dept]
         
         res_basic = calculate_ratio_based_staff(actual_hajjaj_in_center, ratio, 0) 
-        staff_breakdown = distribute_staff(res_basic['Basic'], ratio_supervisor, ratio_assistant_head)
+        # 📌 تم تمرير عدد الفترات
+        staff_breakdown = distribute_staff(res_basic['Basic'], ratio_supervisor, ratio_assistant_head, shifts_count)
         
         total_staff_in_hierarchy = sum(staff_breakdown.values())
         total_needed_with_reserve = math.ceil(total_staff_in_hierarchy * (1 + reserve_factor))
 
-        # تحويل المفاتيح الإنجليزية إلى العربية قبل الإضافة للنتائج النهائية
         translated_breakdown = {TRANSLATION_MAP.get(k, k): v for k, v in staff_breakdown.items()}
         
         result_entry = {"الإدارة": dept}
@@ -221,7 +229,8 @@ if calculate_button:
         bus_ratio = bus_inputs['Ratio'] 
         
         res_basic_buses = calculate_ratio_based_staff(num_units, bus_ratio, 0) 
-        staff_breakdown_buses = distribute_staff(res_basic_buses['Basic'], ratio_supervisor, ratio_assistant_head)
+        # 📌 تم تمرير عدد الفترات
+        staff_breakdown_buses = distribute_staff(res_basic_buses['Basic'], ratio_supervisor, ratio_assistant_head, shifts_count)
         
         total_staff_in_hierarchy = sum(staff_breakdown_buses.values())
         total_needed_buses = math.ceil(total_staff_in_hierarchy * (1 + reserve_factor))
@@ -242,7 +251,8 @@ if calculate_button:
         
         res_basic_time = calculate_time_based_staff(actual_hajjaj_in_center * 2, time_min, service_days, staff_work_hours_day, 0)
         
-        staff_breakdown_time = distribute_staff(res_basic_time['Basic'], ratio_supervisor, ratio_assistant_head)
+        # 📌 تم تمرير عدد الفترات
+        staff_breakdown_time = distribute_staff(res_basic_time['Basic'], ratio_supervisor, ratio_assistant_head, shifts_count)
         
         total_staff_in_hierarchy = sum(staff_breakdown_time.values())
         total_needed_time = math.ceil(total_staff_in_hierarchy * (1 + reserve_factor))
