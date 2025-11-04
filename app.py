@@ -100,7 +100,7 @@ section[data-testid="stSidebar"] {
 """, unsafe_allow_html=True)
 
 # العنوان الرئيسي
-st.title("أداة تخطيط القوى العاملة الذكية")
+st.title(" تخطيط القوى العاملة ")
 st.markdown("---")
 
 
