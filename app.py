@@ -6,7 +6,7 @@ import pandas as pd
 # التهيئة والتعريفات (يجب أن تعمل بأمان)
 # -------------------------------------------------------------------
 
-st.set_page_config(page_title="🕋 مخطط القوى العاملة للحج", layout="wide")
+st.set_page_config(page_title="🕋 مخطط القوى العاملة للحج", layout="wide") 
 
 st.title("🕋 أداة تخطيط القوى العاملة الذكية")
 st.markdown("---")
@@ -26,6 +26,7 @@ def calculate_ratio_based_staff(num_hajjaj, ratio, reserve_factor):
 
 def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, ratio_head):
     مقدم_خدمة = total_basic_staff  
+    # تم تبسيط الهيكل الإداري لضمان الدقة وتجنب الأخطاء
     مشرفون_اجمالي = math.ceil(مقدم_خدمة / ratio_supervisor)
     مساعد_رئيس = math.ceil(مشرفون_اجمالي / ratio_assistant_head)
     رئيس = math.ceil(مساعد_رئيس / ratio_head)
@@ -101,50 +102,7 @@ for dept in DEPARTMENTS[department_type_choice]:
     name = dept['name']
     
     if dept['type'] == 'Ratio':
-        # استخدام مفتاح (key) فريد لـ Streamlit
         ratios[name] = st.sidebar.number_input(f"{name} (حاج / موظف)", min_value=1, value=dept['default_ratio'], key=f"{name}_ratio_input")
     
     elif dept['type'] == 'Time':
-        time_based_inputs[name] = st.sidebar.number_input(f"{name} (دقيقة/حاج)", min_value=0.5, value=dept['default_time'], step=0.1, key=f"{name}_time_input")
-
-    elif dept['type'] == 'Bus_Ratio':
-        st.sidebar.markdown(f"**مدخلات {name}**")
-        bus_inputs = {'Bus_Count': 0, 'Ratio': 0}
-        bus_inputs['Bus_Count'] = st.sidebar.number_input("عدد الحافلات المتوقعة", min_value=1, value=20, key=f"{name}_bus_count")
-        bus_inputs['Ratio'] = st.sidebar.number_input(f"{name} (حافلة / موظف إرشاد)", min_value=1, value=dept['default_ratio'], key=f"{name}_ratio_val")
-        bus_ratio_inputs[name] = bus_inputs 
-
-
-# -------------------------------------------------------------------
-# تنفيذ الحسابات والتوزيع
-# -------------------------------------------------------------------
-
-st.markdown("---") # هذا السطر يجب أن يظهر
-
-# 📌 الزر يجب أن يظهر هنا (تقريباً السطر 157)
-calculate_button = st.button(f"🔄 اضغط هنا لحساب وعرض احتياج {department_type_choice}", type="primary", key="calculate_button_main")
-
-if calculate_button: 
-    
-    st.success("✅ تم الضغط على الزر. جاري بدء الحساب...") 
-
-    all_results = []
-    total_staff_needed = 0
-
-    # أ. حساب الإدارات المعتمدة على التغطية (حاج / موظف)
-    for dept, ratio in ratios.items():
-        res_basic = calculate_ratio_based_staff(num_hajjaj, ratio, 0) 
-        staff_breakdown = distribute_staff(res_basic['Basic'], ratio_supervisor, ratio_assistant_head, ratio_head)
-        
-        total_staff_in_hierarchy = sum(staff_breakdown.values())
-        total_needed_with_reserve = math.ceil(total_staff_in_hierarchy * (1 + reserve_factor))
-        
-        all_results.append({
-            "الإدارة": dept, 
-            "رئيس": staff_breakdown['رئيس'], 
-            "مساعد رئيس": staff_breakdown['مساعد رئيس'],
-            "مشرف اداري": staff_breakdown['مشرف اداري'],
-            "مشرف ميداني": staff_breakdown['مشرف ميداني'],
-            "مقدم خدمة": staff_breakdown['مقدم خدمة'],
-            "اداري": staff_breakdown['اداري'],
-            "المجموع الإجمالي (بالاحتياط)": total_needed
+        time_based_inputs[name] = st.sidebar.number_input(f"{name} (دقيقة/حاج)", min_value=0.5, value=dept['
