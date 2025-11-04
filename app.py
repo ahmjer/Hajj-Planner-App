@@ -1,6 +1,7 @@
 import streamlit as st 
 import math
 import pandas as pd
+from io import BytesIO # 📌 تم إضافة استيراد BytesIO هنا
 
 # -------------------------------------------------------------------
 # الثوابت والدوال 
@@ -45,6 +46,17 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, 
         "Field_Supervisor": field_supervisor_fixed, 
         "Service_Provider": service_provider, 
     } 
+
+# 📌 دالة التصدير إلى إكسل
+def to_excel(df):
+    output = BytesIO()
+    # استخدام xlsxwriter لضمان التوافق مع ملفات الإكسل الحديثة
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    # index=True يحافظ على أسماء الإدارات كصف (الطلب الأساسي)
+    df.to_excel(writer, index=True, sheet_name='احتياج القوى العاملة')
+    writer.close()
+    processed_data = output.getvalue()
+    return processed_data
 
 DEPARTMENTS = {
     "الضيافة": [
@@ -128,8 +140,6 @@ shifts_count = st.sidebar.selectbox(
     index=2,
     key="shifts_count"
 )
-# تم حذف الجملة الإخبارية حول الفترات بناءً على الطلب السابق (وذلك لا يؤثر على الحساب)
-# st.sidebar.info(f"مشرف ميداني ومساعد رئيس سيزيدان لكل {shifts_count} فترة.")
 
 ratio_supervisor = st.sidebar.number_input("مقدم خدمة / مشرف", min_value=1, value=8, key="ratio_supervisor")
 ratio_assistant_head = st.sidebar.number_input("مشرف / مساعد رئيس (للهرم)", min_value=1, value=4, key="ratio_assistant_head")
@@ -190,7 +200,6 @@ with st.container(border=True):
                 coverage_label = f"نسبة تغطية (%)"
                 coverage_key = f"cov_{department_type_choice}_{name}_{i}"
                 
-                # 📌 التعديل هنا: تحويل من شريط سحب إلى مربع إدخال رقمي
                 coverage_val = st.number_input(
                     coverage_label, 
                     min_value=0, 
@@ -334,6 +343,17 @@ if calculate_button:
     df = df[column_order]
 
     st.dataframe(df, use_container_width=True)
+    
+    # 📌 زر تصدير الإكسل المخصص
+    excel_data = to_excel(df)
+    
+    st.download_button(
+        label="📥 تصدير البيانات إلى ملف Excel",
+        data=excel_data,
+        file_name=f'تخطيط_القوى_العاملة_{department_type_choice}.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        type="secondary"
+    )
 
     st.markdown("---")
 
