@@ -31,30 +31,10 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, 
     مشرف_ميداني_مخصص = FIELD_SUPERVISORS_PER_LOCATION 
     مشرف_اداري_مخصص = 0 
     
-    # الإجمالي المشرفين لغرض الهيكل الإداري (رئيس/مساعد رئيس)
     مشرفون_اجمالي_للهرم = math.ceil(مقدم_خدمة / ratio_supervisor)
     
     مشرفون_اجمالي = max(مشرفون_اجمالي_للهرم, مشرف_ميداني_مخصص)
     
     مساعد_رئيس = math.ceil(مشرفون_اجمالي / ratio_assistant_head)
     رئيس = math.ceil(مساعد_رئيس / ratio_head)
-    إداري = 1 
-    
-    return {
-        "رئيس": رئيس, 
-        "مساعد رئيس": مساعد_رئيس, 
-        "مشرف ميداني": مشرف_ميداني_مخصص, 
-        "مشرف اداري": مشرف_اداري_مخصص, 
-        "مقدم خدمة": مقدم_خدمة, 
-        "اداري": إداري
-    }
-
-# تحديد الإدارات وتصنيفها 
-DEPARTMENTS = {
-    "مراكز الضيافة": [
-        {"name": "مركز الضيافة", "type": "Ratio", "default_ratio": 75, "default_coverage": 100}, 
-    ],
-    "الاستقبال والمغادرة": [
-        {"name": "استقبال الهجرة", "type": "Ratio", "default_ratio": 100, "default_coverage": 30},
-        {"name": "استقبال المطار", "type": "Ratio", "default_ratio": 100, "default_coverage": 50},
-        {"name": "استقبال
+    إداري = 1
