@@ -114,7 +114,7 @@ section[data-testid="stSidebar"] {
 """, unsafe_allow_html=True)
 
 # العنوان الرئيسي
-st.title("أداة تخطيط القوى العاملة الذكية")
+st.title(" تخطيط القوى العاملة الموسمية")
 st.markdown("---")
 
 # إضافة تنبيه للمستخدمين على الجوال
