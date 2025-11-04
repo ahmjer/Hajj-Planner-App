@@ -51,3 +51,9 @@ def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, 
 
 # -------------------------------------------------------------------
 # تحديد الإدارات وتصنيف
+import streamlit as st
+
+st.set_page_config(page_title="Test App", layout="wide")
+
+st.title("🕋 تم تشغيل التطبيق بنجاح.")
+st.write("إذا ظهر هذا النص، فهذا يعني أن المشكلة تكمن في مكان آخر في الكود الأصلي.")
