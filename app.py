@@ -73,18 +73,34 @@ DEPARTMENTS = {
 # الواجهة الرئيسية (Streamlit UI)
 # -------------------------------------------------------------------
 
-# 📌 إعداد الصفحة (بدون أيقونة الكعبة)
 st.set_page_config(page_title="مخطط القوى العاملة للحج", layout="wide", page_icon=None) 
 
-# 📌 العنوان الرئيسي
+# 📌📌📌 كود CSS لحقن دعم RTL القوي 
+st.markdown("""
+<style>
+/* تفعيل RTL على جميع النصوص والمكونات */
+html, body, [class*="st-emotion-"] {
+    direction: rtl;
+    text-align: right;
+}
+
+/* تعديل عرض الشريط الجانبي (Sidebar) لضمان محتواه RTL */
+section[data-testid="stSidebar"] {
+    text-align: right;
+}
+</style>
+""", unsafe_allow_html=True)
+# 📌📌📌 نهاية كود CSS
+
+# العنوان الرئيسي
 st.title("أداة تخطيط القوى العاملة الذكية")
 st.markdown("---")
+
 
 # -------------------------------------------------------------------
 # القسم الأول: الإعدادات العامة ونوع الإدارة (في الشريط الجانبي)
 # -------------------------------------------------------------------
 
-# 📌 إضافة الشعار في أعلى الشريط الجانبي
 st.sidebar.image("logo.png", use_column_width=True) 
 
 st.sidebar.header("1. الإعدادات العامة")
@@ -141,7 +157,7 @@ with st.container(border=True):
     time_based_inputs = {} 
     bus_ratio_inputs = {} 
     coverage_percentages = {} 
-    criteria_choices = {} # 📌 لتخزين اختيار المعيار لكل فرع
+    criteria_choices = {} 
 
     cols = st.columns(3)
     col_index = 0
@@ -170,7 +186,6 @@ with st.container(border=True):
                 key=criterion_key,
             )
             
-            # تخزين المعيار المختار ('Present' أو 'Flow')
             criteria_choices[name] = 'Present' if criterion_choice_text == criterion_options[0] else 'Flow'
 
             # A. إدخال نسبة التغطية (لكل ما يعتمد على عدد الحجاج)
@@ -225,7 +240,6 @@ if calculate_button:
         "Admin_Staff": "اداري"
     }
 
-    # 📌 تحديد مصدر بيانات الحجاج
     hajjaj_data = {
         'Present': num_hajjaj_present,
         'Flow': num_hajjaj_flow
@@ -233,7 +247,6 @@ if calculate_button:
 
     # أ. حساب الإدارات المعتمدة على التغطية (حاج / موظف)
     for dept, ratio in ratios.items():
-        # 📌 استخدام قيمة الحجاج المناسبة (Present أو Flow)
         criterion = criteria_choices[dept] 
         num_hajjaj_for_dept = hajjaj_data[criterion] 
         
@@ -257,7 +270,6 @@ if calculate_button:
 
     # ب. حساب إرشاد الحافلات (معيار خاص) 
     for dept, bus_inputs in bus_ratio_inputs.items():
-        # هذا النوع لا يعتمد على عدد الحجاج، بل على عدد الحافلات
         num_units = bus_inputs['Bus_Count'] 
         bus_ratio = bus_inputs['Ratio'] 
         
@@ -279,13 +291,11 @@ if calculate_button:
 
     # ج. حساب الإدارات المعتمدة على الزمن (Time-based)
     for dept, time_min in time_based_inputs.items():
-        # 📌 استخدام قيمة الحجاج المناسبة (Present أو Flow)
         criterion = criteria_choices[dept]
         num_hajjaj_for_dept = hajjaj_data[criterion]
         
         actual_hajjaj_in_center = num_hajjaj_for_dept * coverage_percentages[dept]
         
-        # ضرب الحجاج في 2 يعكس تقدير الذهاب والإياب أو نقطتي خدمة
         res_basic_time = calculate_time_based_staff(actual_hajjaj_in_center * 2, time_min, service_days, staff_work_hours_day)
         
         staff_breakdown_time = distribute_staff(res_basic_time, ratio_supervisor, ratio_assistant_head, shifts_count)
