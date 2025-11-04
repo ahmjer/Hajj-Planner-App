@@ -235,9 +235,7 @@ if calculate_button:
         "Head": "رئيس", 
         "Assistant_Head": "مساعد رئيس", 
         "Field_Supervisor": "مشرف ميداني", 
-        "Admin_Supervisor": "مشرف اداري", 
         "Service_Provider": "مقدم خدمة", 
-        "Admin_Staff": "اداري"
     }
 
     hajjaj_data = {
