@@ -3,7 +3,7 @@
 primaryColor = "#00ff00" 
 
 # لون الخلفية الرئيسية للصفحة (لتغيير اللون الأبيض أو الأسود الافتراضي)
-backgroundColor = "#E6E6FA" 
+backgroundColor = "#00ff00" 
 
 # لون الخلفية الثانوية (وهو اللون الخاص بالشريط الجانبي)
 secondaryBackgroundColor = "#F0F8FF" 
