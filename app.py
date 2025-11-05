@@ -130,7 +130,7 @@ st.markdown('<div class="custom-header-line"></div>', unsafe_allow_html=True)
 
 
 # العنوان الرئيسي
-st.title("أداة تخطيط القوى العاملة الذكية")
+st.title(" تخطيط القوى العاملة ")
 st.markdown("---")
 
 # إضافة تنبيه للمستخدمين على الجوال
