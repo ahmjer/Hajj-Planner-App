@@ -1,17 +1,17 @@
-import streamlit as st
+import streamlit as st 
 import math
 import pandas as pd
-from io import BytesIO
+from io import BytesIO 
 
 # -------------------------------------------------------------------
-# الثوابت والدوال
+# الثوابت والدوال 
 # -------------------------------------------------------------------
 
-# ثوابت عامة
+# ثوابت عامة 
 TOTAL_WORK_HOURS = 24
 SUPERVISORS_PER_SHIFT = 1
-ASSISTANT_HEADS_PER_SHIFT = 1
-DEFAULT_HEAD_ASSISTANT_RATIO = 4
+ASSISTANT_HEADS_PER_SHIFT = 1 
+DEFAULT_HEAD_ASSISTANT_RATIO = 4 
 
 
 def calculate_time_based_staff(total_events, time_per_event_min, service_days, staff_work_hours_day):
@@ -29,25 +29,21 @@ def calculate_ratio_based_staff(num_units, ratio):
 def distribute_staff(total_basic_staff, ratio_supervisor, ratio_assistant_head, shifts):
     service_provider = total_basic_staff  
     
-    # عدد المشرفين الميدانيين الثابت (1 لكل شفت)
     field_supervisor_fixed = SUPERVISORS_PER_SHIFT * shifts 
     
-    # عدد المشرفين بناءً على الهيكل الهرمي (من مقدمي الخدمة)
     total_hierarchical_supervisors = math.ceil(service_provider / ratio_supervisor)
     
-    # اختيار الأكبر بين الثابت والهرمي
     total_supervisors = max(total_hierarchical_supervisors, field_supervisor_fixed)
     
-    # حساب مساعدي الرؤساء
     assistant_head_fixed = ASSISTANT_HEADS_PER_SHIFT * shifts
     assistant_head = max(assistant_head_fixed, math.ceil(total_supervisors / ratio_assistant_head))
     
-    head = 1  # رئيس واحد للإدارة
+    head = 1  
     
     return {
         "Head": head, 
         "Assistant_Head": assistant_head, 
-        "Field_Supervisor": total_supervisors, # نستخدم total_supervisors بدلاً من field_supervisor_fixed لتمثيل المشرفين الكلي
+        "Field_Supervisor": field_supervisor_fixed, 
         "Service_Provider": service_provider, 
     } 
 
@@ -82,9 +78,9 @@ DEPARTMENTS = {
 # الواجهة الرئيسية (Streamlit UI)
 # -------------------------------------------------------------------
 
-st.set_page_config(page_title="مخطط القوى العاملة للحج", layout="wide", page_icon="🕋") 
+st.set_page_config(page_title="مخطط القوى العاملة للحج", layout="wide", page_icon=None) 
 
-# 📌📌📌 كتلة CSS الموحدة والمعدلة (لإصلاح مشكلة التمرير في الشريط الجانبي) 📌📌📌
+# 📌📌📌 كتلة CSS الموحدة والقوية (بما في ذلك الشريط العودي الثابت) 📌📌📌
 st.markdown("""
 <style>
 /* 1. إجبار كامل الصفحة على RTL */
@@ -109,27 +105,22 @@ html, body, [class*="st-emotion-"] {
     z-index: 9999; /* لضمان ظهوره فوق كل شيء */
 }
 
-/* 4. تثبيت الشريط الجانبي وتحسين RTL */
+/* 4. تثبيت الشريط الجانبي وتحسين RTL على الجوال */
 section[data-testid="stSidebar"] {
     text-align: right;
+    transform: none !important; 
+    left: auto;                  
+    right: 0;                    
 }
 
-/* 5. تعديل محتوى الشريط الجانبي وإجبار التمرير (الإصلاح) */
+/* 5. تعديل محتوى الشريط الجانبي وإخفاء الكلمات العشوائية أثناء التحميل */
 [data-testid="stSidebarContent"] {
     direction: rtl;
     text-align: right;
     visibility: hidden; 
-    /* <<<<<<<<<<<<<<< الإضافة الرئيسية للإصلاح >>>>>>>>>>>>>>>>> */
-    overflow-y: auto !important; /* يضمن التمرير العمودي للمحتوى إذا كان طويلاً */
 }
-
 [data-testid="stSidebarUserContent"] {
     visibility: visible !important; 
-}
-
-/* تحسين تنسيق الأرقام في الإدخال */
-.stNumberInput > label {
-    font-weight: bold;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -139,7 +130,7 @@ st.markdown('<div class="custom-header-line"></div>', unsafe_allow_html=True)
 
 
 # العنوان الرئيسي
-st.title("🕋 تخطيط القوى العاملة ")
+st.title(" تخطيط القوى العاملة ")
 st.markdown("---")
 
 # إضافة تنبيه للمستخدمين على الجوال
@@ -150,8 +141,7 @@ st.info("⚠️ **لإدخال معايير الحساب:** يرجى فتح **ا
 # القسم الأول: الإعدادات العامة ونوع الإدارة (في الشريط الجانبي)
 # -------------------------------------------------------------------
 
-# افتراض أن لديك صورة باسم 'logo.png'
-# st.sidebar.image("logo.png", width=200) 
+st.sidebar.image("logo.png", width=200) 
 
 st.sidebar.header("1. الإعدادات العامة")
 
@@ -255,7 +245,7 @@ with st.container(border=True):
 
             # B. إدخال معيار الاحتساب (Ratio/Time/Bus)
             if dept_type == 'Ratio':
-                label = "المعيار (حاج/موظف)"
+                label = "المعيار (وحدة/موظف)"
                 key_val = f"ratio_{department_type_choice}_{name}_{i}" 
                 ratios[name] = st.number_input(label, min_value=1, value=dept['default_ratio'], key=key_val)
             
@@ -290,7 +280,7 @@ if calculate_button:
     TRANSLATION_MAP = {
         "Head": "رئيس", 
         "Assistant_Head": "مساعد رئيس", 
-        "Field_Supervisor": "مشرف", 
+        "Field_Supervisor": "مشرف ميداني", 
         "Service_Provider": "مقدم خدمة", 
     }
 
@@ -348,8 +338,7 @@ if calculate_button:
         criterion = criteria_choices[dept]
         num_hajjaj_for_dept = hajjaj_data[criterion]
         
-        # ملاحظة: تم ضرب عدد الحجاج * 2 بناءً على الكود الأصلي (قد يمثل ذهاب وعودة أو حدثين)
-        actual_hajjaj_in_center = num_hajjaj_for_dept * coverage_percentages[dept] 
+        actual_hajjaj_in_center = num_hajjaj_for_dept * coverage_percentages[dept]
         
         res_basic_time = calculate_time_based_staff(actual_hajjaj_in_center * 2, time_min, service_days, staff_work_hours_day)
         
@@ -378,7 +367,7 @@ if calculate_button:
     st.markdown("يتم تطبيق نسبة الاحتياط على **المجموع الإجمالي** لكل إدارة.")
 
     column_order = [
-        "رئيس", "مساعد رئيس", "مشرف", 
+        "رئيس", "مساعد رئيس", "مشرف ميداني", 
         "مقدم خدمة", "المجموع الإجمالي (بالاحتياط)" 
     ]
     
