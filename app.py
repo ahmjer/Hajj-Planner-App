@@ -2,7 +2,7 @@ import streamlit as st
 import math
 import pandas as pd
 from io import BytesIO
-import os # لإدارة مسارات الملفات والتحقق من وجودها
+import os
 
 # -------------------------------------------------------------------
 # 1. الثوابت العامة (Constants)
@@ -495,7 +495,7 @@ def all_departments_page():
                 # 4. زر الإزالة (خارج النموذج)
                 col_remove.button(
                     "🗑️ إزالة",
-                    on_click=remove_hospitality_center,
+                    on_on_click=remove_hospitality_center,
                     args=(center_id,),
                     key=f"hosp_remove_{center_id}"
                 )
@@ -834,7 +834,7 @@ def all_departments_page():
 
 
 # -------------------------------------------------------------------
-# 6. الدالة الرئيسية للتطبيق (Main App Function) - التعديل هنا
+# 6. الدالة الرئيسية للتطبيق (Main App Function)
 # -------------------------------------------------------------------
 
 def app():
@@ -882,9 +882,9 @@ def app():
         # **إضافة الشعار هنا**
         logo_path = "logo.png"
         if os.path.exists(logo_path):
-            st.image(logo_path, width=250) # يمكنك تعديل العرض حسب الحاجة
+            st.image(logo_path, width=250) # تم ضبط العرض ليتناسب مع الشريط الجانبي
         else:
-            st.warning("⚠️ لم يتم العثور على ملف 'logo.png' في نفس مجلد التطبيق.")
+            st.warning("⚠️ لم يتم العثور على ملف 'logo.png' في نفس مجلد التطبيق. يرجى التأكد من مساره.")
         
         st.title("⚙️ الإعدادات العامة")
         
@@ -968,4 +968,3 @@ def app():
 
 if __name__ == "__main__":
     app()
-```http://googleusercontent.com/image_generation_content/0
