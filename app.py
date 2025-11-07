@@ -12,7 +12,7 @@ SUPERVISORS_PER_SHIFT = 1
 ASSISTANT_HEADS_PER_SHIFT = 1
 DEFAULT_HEAD_ASSISTANT_RATIO = 4 
 
-# متوسطات الرواتب الافتراضية
+# متوسطات الرواتب الافتراضية المحدثة
 DEFAULT_SALARY = {
     "رئيس": 37000,
     "مساعد رئيس": 30000,
@@ -98,81 +98,50 @@ def to_excel(df):
     processed_data = output.getvalue()
     return processed_data
 
-# دالة عرض وحساب الميزانية
-def display_budget_calculation(total_staff_per_role):
-    st.subheader("3. لوحة احتساب ميزانية الرواتب")
-    st.markdown("---")
+def generate_budget_data(total_staff_per_role, service_days):
+    """تحسب بيانات الميزانية وتجهزها للتصدير."""
+    budget_data = []
+    final_total_monthly_cost = 0
     
-    st.info("ℹ️ **ملحوظة:** يتم حساب الميزانية بناءً على العدد **الفعلي** للموظفين المطلوبين في الرتب (بدون نسبة الاحتياط الإجمالي).")
+    # 1. حساب التكاليف لكل رتبة
+    for role, staff_count in total_staff_per_role.items():
+        # استخدام الراتب المخزن في session_state أو الافتراضي
+        salary = st.session_state.get(f'salary_{role}', DEFAULT_SALARY.get(role, 0))
+        monthly_cost = staff_count * salary
+        final_total_monthly_cost += monthly_cost
+        
+        budget_data.append({
+            "الرتبة الوظيفية": role,
+            "العدد الإجمالي المطلوب": staff_count,
+            "متوسط الراتب الشهري (ريال)": salary,
+            "التكلفة الشهرية الإجمالية (ريال)": monthly_cost
+        })
+
+    total_project_cost = final_total_monthly_cost / 30 * service_days
     
-    with st.form("salary_input_form"):
-        st.markdown("#### إدخال متوسط الرواتب لكل رتبة (بالريال السعودي / شهرياً)")
+    df_budget = pd.DataFrame(budget_data)
+    
+    # 2. إنشاء ملف Excel متعدد الأوراق
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         
-        salary_inputs = {}
-        for role, default_salary in DEFAULT_SALARY.items():
-            if role in total_staff_per_role:
-                staff_count = total_staff_per_role[role]
-                
-                current_salary = st.session_state.get(f'salary_{role}', default_salary)
-                
-                col1, col2 = st.columns([1, 2])
-                with col1:
-                    salary_inputs[role] = st.number_input(
-                        f"متوسط راتب {role}:", 
-                        min_value=1000, 
-                        value=current_salary, 
-                        step=500,
-                        key=f"input_salary_{role}_budget"
-                    )
-                with col2:
-                    st.metric(label=f"إجمالي العدد المطلوب لـ {role}:", value=f"{staff_count} موظف")
+        # الورقة 1: جدول تفاصيل الرتب
+        df_budget.to_excel(writer, index=False, sheet_name='تفاصيل_الرواتب_الشهرية')
 
-        submitted = st.form_submit_button("✅ تأكيد واحتساب التكاليف", type="secondary")
-
-    if submitted:
-        # تخزين المدخلات الجديدة في session_state
-        for role, salary in salary_inputs.items():
-            st.session_state[f'salary_{role}'] = salary
-
-        budget_data = []
-        final_total_monthly_cost = 0
-        service_days = st.session_state['service_days']
-
-        for role, staff_count in total_staff_per_role.items():
-            salary = st.session_state[f'salary_{role}']
-            monthly_cost = staff_count * salary
-            final_total_monthly_cost += monthly_cost
-            
-            budget_data.append({
-                "الرتبة الوظيفية": role,
-                "العدد الإجمالي المطلوب": staff_count,
-                "متوسط الراتب الشهري (ريال)": salary,
-                "التكلفة الشهرية الإجمالية (ريال)": f"{monthly_cost:,}"
-            })
-
-        st.markdown("#### 4. نتائج ميزانية الرواتب التقديرية")
-        df_budget = pd.DataFrame(budget_data)
-        st.dataframe(df_budget, use_container_width=True, hide_index=True)
+        # الورقة 2: ملخص الإجماليات
+        summary_data = {
+            "البيان": ["إجمالي التكلفة الشهرية (ريال)", f"إجمالي تكلفة المشروع ({service_days} يوم) (ريال)", "إجمالي الموظفين (بدون احتياط)"],
+            "القيمة": [final_total_monthly_cost, total_project_cost, sum(total_staff_per_role.values())]
+        }
+        df_summary = pd.DataFrame(summary_data)
+        df_summary.to_excel(writer, startrow=1, startcol=1, index=False, sheet_name='ملخص_الميزانية')
         
-        st.markdown("---")
-        
-        col1, col2 = st.columns(2)
-        total_project_cost = final_total_monthly_cost / 30 * service_days
+    return output.getvalue()
 
-        with col1:
-            st.metric(
-                label="**إجمالي التكلفة الشهرية التقديرية (لجميع الموظفين)**",
-                value=f"{final_total_monthly_cost:,} ريال",
-            )
-        
-        with col2:
-            st.metric(
-                label=f"**التكلفة الإجمالية التقديرية للمشروع ({service_days} يوم)**",
-                value=f"{total_project_cost:,.2f} ريال",
-                delta_color="off"
-            )
-        
-        st.success("✅ تم احتساب وعرض الميزانية التقديرية بنجاح.")
+
+def to_excel_budget(total_staff_per_role, service_days):
+    """تستدعي دالة إنشاء البيانات وتسترجع بايتات ملف Excel."""
+    return generate_budget_data(total_staff_per_role, service_days)
 
 
 # -------------------------------------------------------------------
@@ -312,7 +281,6 @@ def all_departments_page():
                          
             st.session_state['user_settings_all'] = user_settings
             st.session_state['run_calculation_all'] = True 
-            st.session_state['run_budget_calc'] = False 
             st.rerun() 
             
     # 3. الحساب والعرض (يتم عند استدعاء rerun)
@@ -407,7 +375,7 @@ def all_departments_page():
         
         st.dataframe(df, use_container_width=True)
         
-        # 5. تخزين إجماليات الموظفين
+        # 5. تخزين إجماليات الموظفين (المفتاح لصفحة الميزانية)
         total_staff_per_role = {}
         for role_arabic in [TRANSLATION_MAP[k] for k in TRANSLATION_MAP.keys()]:
             if role_arabic in df.columns:
@@ -416,7 +384,14 @@ def all_departments_page():
         st.session_state['total_staff_per_role'] = total_staff_per_role
         st.session_state['total_budget_needed'] = total_staff_needed 
         
-        # 6. زر التصدير وزر احتساب الميزانية
+        # 6. زر التصدير وزر احتساب الميزانية (المعدل للتصدير المباشر)
+        
+        # تهيئة متوسطات الرواتب الافتراضية في session_state إذا لم تكن موجودة
+        service_days = st.session_state['service_days']
+        for role, default_salary in DEFAULT_SALARY.items():
+            if f'salary_{role}' not in st.session_state:
+                 st.session_state[f'salary_{role}'] = default_salary
+
         col_download, col_budget_btn = st.columns(2)
         
         with col_download:
@@ -430,11 +405,14 @@ def all_departments_page():
             )
             
         with col_budget_btn:
-            st.button(
-                "💰 **احتساب ميزانية الرواتب التقديرية**",
-                on_click=lambda: st.session_state.update(run_budget_calc=True),
+            # استخدام st.download_button لتصدير مباشر لملف الميزانية
+            st.download_button(
+                label="💰 **تصدير ميزانية الرواتب (Excel)**",
+                data=to_excel_budget(total_staff_per_role, service_days),
+                file_name='ميزانية_الرواتب_التقديرية.xlsx',
+                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 type="primary",
-                key="trigger_budget_calc"
+                key="download_budget_excel"
             )
 
         st.markdown("---")
@@ -448,11 +426,6 @@ def all_departments_page():
             )
         with col2:
             st.info(f"نسبة الاحتياط الإجمالية المطبقة: {st.session_state['reserve_factor_input']}%")
-        
-        
-        # 8. عرض لوحة حساب الميزانية (تظهر بعد الضغط على الزر)
-        if st.session_state.get('run_budget_calc', False):
-            display_budget_calculation(total_staff_per_role)
             
     else:
         st.info("⬆️ يرجى إدخال أو مراجعة معايير الاحتساب ثم الضغط على زر **'احتساب وعرض النتائج الموحدة'** في نهاية الصفحة.")
@@ -680,7 +653,7 @@ def main_page_logic():
 
 st.set_page_config(page_title="مخطط القوى العاملة للحج", layout="wide", page_icon=None)
 
-# 📌 كود CSS للتنسيق
+# كود CSS للتنسيق
 st.markdown("""
 <style>
 html, body, [class*="st-emotion-"] { direction: rtl; text-align: right; }
@@ -698,8 +671,6 @@ if 'current_page' not in st.session_state:
     st.session_state['current_page'] = 'main'
 if 'run_calculation_all' not in st.session_state:
     st.session_state['run_calculation_all'] = False
-if 'run_budget_calc' not in st.session_state: 
-    st.session_state['run_budget_calc'] = False
 
 # 7. الشريط الجانبي (Sidebar)
 with st.sidebar:
