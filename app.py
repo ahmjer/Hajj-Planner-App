@@ -408,7 +408,7 @@ def all_departments_page():
             # إدارة المراكز (خارج النموذج)
             with st.container(border=False): # حاوية داخلية بدون إطار
                 st.markdown("---")
-                st.markdown("**إدارة المراكز (الإغلاق/الفتح وتحديد الحجاج)**")
+                st.markdown("**إدارة المراكز (الإغلاق/الفتح )**")
                 
                 centers_to_display = st.session_state.dynamic_hospitality_centers[:]
                 
