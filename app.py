@@ -22,7 +22,6 @@ DEFAULT_SALARY = {
 
 # تعريف الإدارات
 DEPARTMENTS = {
-    # ملاحظة: تم إزالة "مركز الضيافة" الافتراضي ليتم إدخاله ديناميكياً
     "الضيافة": [], 
     "الوصول والمغادرة": [
         {"name": "استقبال الهجرة", "type": "Ratio", "default_ratio": 100, "default_coverage": 30, "default_criterion": 'Flow'},
@@ -71,26 +70,44 @@ def calculate_ratio_based_staff(num_units, ratio):
     return basic_staff
 
 def distribute_staff(total_basic_staff, ratio_supervisor, shifts, required_assistant_heads=0, ratio_assistant_head=DEFAULT_HEAD_ASSISTANT_RATIO):
-    """توزع مقدمي الخدمة على الهيكل الإداري (مشرفين ورؤساء)."""
+    """
+    توزع مقدمي الخدمة على الهيكل الإداري (مشرفين ورؤساء).
+    يطبق التعديل الجديد: الحد الأدنى للقيادة الإجمالية (رئيس+مساعد رئيس+مشرف) يُحسب مقابل مقدمي الخدمة.
+    """
     
     service_provider = total_basic_staff
     
-    # 1. حساب المشرف الميداني
-    # يتم احتساب مشرف ثابت لكل وردية (1 لكل وردية هو المعيار الأساسي)
-    field_supervisor_fixed = SUPERVISORS_PER_SHIFT * shifts 
-    total_hierarchical_supervisors = math.ceil(service_provider / ratio_supervisor)
-    total_supervisors = max(total_hierarchical_supervisors, field_supervisor_fixed)
-    
-    # 2. حساب مساعد الرئيس 
-    # يتم احتساب مساعد رئيس ثابت لكل وردية (حسب القيمة المدخلة required_assistant_heads)
-    assistant_head_fixed = required_assistant_heads * shifts 
-    # ويتم حساب مساعد رئيس هرمي لكل ratio_assistant_head مشرف
-    total_hierarchical_assistant_heads = math.ceil(total_supervisors / ratio_assistant_head) if total_supervisors > 0 else 0
-    assistant_head = max(assistant_head_fixed, total_hierarchical_assistant_heads)
-    
-    # 3. حساب الرئيس (بافتراض رئيس واحد إلزامي)
+    # 1. تعريف الحدود الدنيا الثابتة لكل دور (حسب عدد الورديات)
     head = 1
+    field_supervisor_fixed = SUPERVISORS_PER_SHIFT * shifts 
+    assistant_head_fixed = required_assistant_heads * shifts 
     
+    # 2. الحد الأدنى الهرمي للقيادة الإجمالية (رئيس، مساعد رئيس، مشرف) 
+    # يجب أن يكون هذا المجموع على الأقل ceil(مقدم الخدمة / ratio_supervisor)
+    total_leadership_min_hierarchical = math.ceil(service_provider / ratio_supervisor)
+
+    # 3. حساب القيادة الثابتة الأدنى المضمونة (بغض النظر عن الهرمية)
+    leadership_fixed_sum = head + assistant_head_fixed + field_supervisor_fixed
+
+    # 4. مقارنة القيادة الثابتة بالقيادة الهرمية المطلوبة
+    if total_leadership_min_hierarchical > leadership_fixed_sum:
+        # إذا كانت النسبة الهرمية تتطلب قيادة أكثر من الثابت المضمون:
+        # يجب زيادة العدد الإضافي في المشرفين لأنهم المستوى الأوسع في الهرم
+        
+        # عدد القيادات الإضافي المطلوب
+        extra_leadership_needed = total_leadership_min_hierarchical - leadership_fixed_sum
+        
+        # توزيع الأدوار
+        total_supervisors = field_supervisor_fixed + extra_leadership_needed
+        assistant_head = assistant_head_fixed
+        
+    else:
+        # إذا كانت القيادة الثابتة المضمونة تحقق النسبة الهرمية أو تتجاوزها
+        # نكتفي بالحد الأدنى الثابت لكل دور
+        total_supervisors = field_supervisor_fixed
+        assistant_head = assistant_head_fixed
+        
+    # نستخدم الآن القيم المحسوبة والنهائية
     return {
         "Head": head,
         "Assistant_Head": assistant_head,
@@ -222,13 +239,11 @@ def all_departments_page():
                 col_status, col_name, col_hajjaj, col_remove = st.columns([1, 2, 2, 1])
                 
                 # 1. زر الإغلاق/الفتح (Toggle)
-                # يبقى الـ toggle/checkbox خارج النموذج ويعمل بشكل طبيعي
                 new_active = col_status.toggle(
                     "مفعل", 
                     value=center.get('active', True), 
                     key=f"hosp_active_{center_id}"
                 )
-                # تحديث الحالة مباشرة
                 st.session_state.dynamic_hospitality_centers[i]['active'] = new_active
 
                 # 2. اسم المركز
@@ -237,7 +252,6 @@ def all_departments_page():
                     value=center.get('name', f'مركز ضيافة #{center_id}'), 
                     key=f"hosp_name_{center_id}"
                 )
-                # تحديث الحالة مباشرة
                 st.session_state.dynamic_hospitality_centers[i]['name'] = new_name
 
                 # 3. عدد حجاج المركز
@@ -248,7 +262,6 @@ def all_departments_page():
                     step=100, 
                     key=f"hosp_hajjaj_{center_id}"
                 )
-                # تحديث الحالة مباشرة
                 st.session_state.dynamic_hospitality_centers[i]['hajjaj_count'] = new_hajjaj_count
                 
                 # 4. زر الإزالة (خارج النموذج)
@@ -265,15 +278,13 @@ def all_departments_page():
     # --- ضبط المعايير العامة ونسبة الضيافة (داخل النموذج) ---
     with st.form("all_dept_criteria_form"):
         
-        # 1. مدخلات نسبة الضيافة (يجب أن تكون داخل النموذج التالي ليتم إرسال قيمها مع الـ Submit)
+        # 1. مدخلات نسبة الضيافة (داخل النموذج)
         st.markdown("#### ⚙️ معيار نسبة مقدمي الخدمة لمراكز الضيافة")
-        # نستخدم نسخة لضمان عدم حدوث تغييرات أثناء التكرار
         for i, center in enumerate(st.session_state.dynamic_hospitality_centers[:]):
-            # نأخذ مدخلات المراكز المفعلة فقط
             if center['active']:
                 center_id = center['id']
                 ratio_key = f"Hosp_Ratio_{center_id}"
-                default_ratio = user_settings.get(ratio_key, 200) # القيمة الافتراضية 200 حاج/موظف
+                default_ratio = user_settings.get(ratio_key, 200) 
                 
                 new_ratio = st.number_input(
                     f"المعيار (حاج/موظف) لـ **{center['name']}**", 
@@ -281,7 +292,6 @@ def all_departments_page():
                     value=default_ratio,
                     key=f"hosp_ratio_{center_id}"
                 )
-                # تخزين النسبة في user_settings لاستخدامها لاحقاً في الحساب
                 user_settings[ratio_key] = new_ratio
         
         st.markdown("---")
@@ -361,7 +371,7 @@ def all_departments_page():
     # 2. التحديث وتخزين إعدادات المستخدم بعد الضغط على Submit
     if calculate_button:
         
-        # تحديث مدخلات الإدارات الثابتة (باستثناء الضيافة)
+        # ... (منطق تحديث الإعدادات ... )
         for category_name, depts in DEPARTMENTS.items():
             if category_name == "الضيافة": continue
 
@@ -369,11 +379,9 @@ def all_departments_page():
                 name = dept['name']
                 dept_type = dept['type']
 
-                # تحديث مساعد الرئيس الإلزامي
                 asst_head_key = f"all_asst_head_req_{name}_{i}"
                 user_settings[name]['required_assistant_heads'] = st.session_state[asst_head_key]
 
-                # تحديث بقية المدخلات
                 criterion_options = ['المتواجدين (حجم)', 'التدفق اليومي (حركة)'] 
                 crit_key = f"all_crit_{name}_{i}"
                 user_settings[name]['criterion'] = 'Present' if st.session_state[crit_key] == criterion_options[0] else 'Flow'
@@ -409,7 +417,7 @@ def all_departments_page():
         
         st.success("✅ جاري بدء الحساب الموحد بناءً على معاييرك المخصصة...")
         
-        # جلب المدخلات العامة من Session State مباشرة
+        # جلب المدخلات العامة
         num_hajjaj_present = st.session_state['num_hajjaj_present']
         num_hajjaj_flow = st.session_state['num_hajjaj_flow']
         service_days = st.session_state['service_days']
@@ -424,29 +432,24 @@ def all_departments_page():
         all_results = []
         total_staff_needed = 0
 
-        # 1. عملية الحساب لمراكز الضيافة الديناميكية (التعديل يتركز هنا)
+        # 1. عملية الحساب لمراكز الضيافة الديناميكية
         for center in st.session_state.dynamic_hospitality_centers:
-            # نتأكد من أن المركز مفعل قبل الحساب
             if center['active']:
                 center_id = center['id']
                 dept_name = center['name']
                 hajjaj_count = center['hajjaj_count']
-                
-                # استرجاع النسبة المخزنة من الواجهة
                 ratio = st.session_state['user_settings_all'].get(f"Hosp_Ratio_{center_id}", 200) 
                 
-                # تطبيق المعادلة الجديدة: عدد مقدمي الخدمة = ceil( (عدد الحجاج / 10) / معيار (حاج/موظف) )
                 num_units_to_serve = hajjaj_count / 10
                 res_basic = calculate_ratio_based_staff(num_units_to_serve, ratio)
                 res_basic = max(1, res_basic)
                 
-                # تطبيق الهيكل الإداري
-                # المعيار الجديد: 1 مساعد رئيس لكل وردية في مراكز الضيافة
+                # تطبيق الهيكل الإداري: 1 مساعد رئيس إلزامي لكل وردية
                 staff_breakdown = distribute_staff(
                     res_basic, 
                     ratio_supervisor, 
                     shifts_count, 
-                    required_assistant_heads=1, # **التعديل الجديد: 1 لكل وردية**
+                    required_assistant_heads=1, 
                     ratio_assistant_head=ratio_assistant_head
                 )
                 
@@ -463,7 +466,7 @@ def all_departments_page():
                 total_staff_needed += total_needed_with_reserve
 
 
-        # 2. عملية الحساب للإدارات الثابتة الأخرى (كما هي)
+        # 2. عملية الحساب للإدارات الثابتة الأخرى
         
         fixed_depts_flat = {k: v for k, v in ALL_DEPARTMENTS_FLAT.items() if v['category'] != 'الضيافة'}
         
@@ -474,7 +477,7 @@ def all_departments_page():
             
             res_basic = 0
             
-            # منطق حساب res_basic 
+            # منطق حساب res_basic (Ratio, Bus_Ratio, Time)
             if dept_type == 'Ratio':
                 ratio = settings['ratio']
                 criterion = settings['criterion']
@@ -497,7 +500,7 @@ def all_departments_page():
                 actual_hajjaj_in_center = num_hajjaj_for_dept * coverage
                 res_basic = calculate_time_based_staff(actual_hajjaj_in_center * multiplier, time_min, service_days, staff_work_hours_day)
             
-            # تطبيق الهيكل الإداري
+            # تطبيق الهيكل الإداري (يستخدم قيمة الإدخال من النموذج)
             required_assistant_heads = settings['required_assistant_heads'] 
             
             staff_breakdown = distribute_staff(
@@ -536,7 +539,7 @@ def all_departments_page():
         
         st.dataframe(df, use_container_width=True)
         
-        # 5. تخزين إجماليات الموظفين (المفتاح لصفحة الميزانية)
+        # 5. تخزين الإجماليات
         total_staff_per_role = {}
         for role_arabic in [TRANSLATION_MAP[k] for k in TRANSLATION_MAP.keys()]:
             if role_arabic in df.columns:
@@ -545,9 +548,7 @@ def all_departments_page():
         st.session_state['total_staff_per_role'] = total_staff_per_role
         st.session_state['total_budget_needed'] = total_staff_needed 
         
-        # 6. زر التصدير وزر احتساب الميزانية (المعدل للتصدير المباشر)
-        
-        # تهيئة متوسطات الرواتب الافتراضية في session_state إذا لم تكن موجودة
+        # 6. التصدير
         service_days = st.session_state['service_days']
         for role, default_salary in DEFAULT_SALARY.items():
             if f'salary_{role}' not in st.session_state:
@@ -566,7 +567,6 @@ def all_departments_page():
             )
             
         with col_budget_btn:
-            # استخدام st.download_button لتصدير مباشر لملف الميزانية
             st.download_button(
                 label="💰 **تصدير ميزانية الرواتب (Excel)**",
                 data=to_excel_budget(total_staff_per_role, service_days),
@@ -755,6 +755,7 @@ def main_page_logic():
             criterion = criteria_choices[dept]
             num_hajjaj_for_dept = hajjaj_data[criterion]
             actual_hajjaj_in_center = num_hajjaj_for_dept * coverage_percentages[dept]
+            # نستخدم 2 كمعامل أحداث افتراضي
             res_basic_time = calculate_time_based_staff(actual_hajjaj_in_center * 2, time_min, service_days, staff_work_hours_day)
             
             staff_breakdown_time = distribute_staff(
