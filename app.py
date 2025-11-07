@@ -33,7 +33,7 @@ DEPARTMENTS = {
         {"name": "متابعة ميدانية", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
         {"name": "الخدمات الميدانية والاسكان ", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
         {"name": "الزيارة وإرشاد التأهيين ", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
-        {"name": " الدعم والضيافة", "type": "Time", "default_time": 5.0, "default_coverage": 100, "default_criterion": 'Present'},
+        {"name": " الدعم والضيافة", "type": "Time", "default_time": 10.0, "default_coverage": 100, "default_criterion": 'Present'},
         {"name": "الرعاية صحية", "type": "Ratio", "default_ratio": 1500, "default_coverage": 100, "default_criterion": 'Present'},
     ]
 }
