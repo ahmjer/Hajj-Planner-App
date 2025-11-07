@@ -394,14 +394,8 @@ def all_departments_page():
     
     # --- إدارة المراكز الديناميكية (خارج النموذج للتعامل مع RERUN) ---
     
-    # استخدام حاوية فريدة لـ CSS (استهدافها بالـ ID: 'hospitality-section-container')
-    with st.container(border=True):
-        st.markdown(
-            """
-            <div id='hospitality-section-container'>
-            """, 
-            unsafe_allow_html=True
-        ) 
+    # القسم الرئيسي الأول: الضيافة (إدارة المراكز والنسبة)
+    with st.container(border=True): # الإطار يحيط بكل قسم الضيافة
         
         st.markdown("#### 🏷️ الضيافة (إدارة المراكز ومعيار النسبة)")
         
@@ -461,20 +455,13 @@ def all_departments_page():
                         )
         else:
             st.info("لا توجد مراكز ضيافة مُضافة بعد.")
-            
-        st.markdown(
-            """
-            </div>
-            """, 
-            unsafe_allow_html=True
-        ) 
     
     st.markdown("---")
     
     # --- نموذج الاحتساب الموحد (لجمع مدخلات النسب والمعايير) ---
     with st.form("all_dept_criteria_form"):
         
-        # --- 1. نسبة الضيافة (داخل النموذج - لكن يتم استهدافها عبر CSS) ---
+        # --- 1. نسبة الضيافة (داخل النموذج) ---
         with st.container(border=True):
             st.markdown("#### ⚙️ معيار نسبة مقدمي الخدمة لمراكز الضيافة")
             
@@ -886,33 +873,35 @@ def app():
             left: auto;
         }
 
-        /* 3. تصحيح اتجاه حقول الإدخال والأعمدة */
-        div[data-testid="stForm"], div[data-testid="stHorizontalBlock"] {
+        /* 3. تصحيح اتجاه الأزرار والنصوص داخل الحاويات والأعمدة */
+        div[data-testid="stForm"] {
             direction: rtl;
+        }
+        
+        /* تصحيح اتجاه حقول الإدخال والـ radio button */
+        label {
+            width: 100%;
+            text-align: right;
         }
         
         /* تصحيح اتجاه الـ radio buttons */
         div[data-testid="stForm"] > div > div > div > div > div {
-            flex-direction: row-reverse; 
-            justify-content: flex-end; 
+            flex-direction: row-reverse; /* لعكس ترتيب الـ radio button */
+            justify-content: flex-end; /* لمحاذاة العناصر إلى اليمين */
+        }
+        
+        /* تصحيح اتجاه الـ st.columns */
+        div[data-testid="stHorizontalBlock"] {
+            flex-direction: row-reverse;
         }
 
-        /* 4. تخصيص الخلفية العامة للحاويات ذات الإطار (التي تمثل الإدارات الأخرى) */
+        /* 4. تخصيص الخلفية للحاويات ذات الإطار */
         .stContainer[data-st-container-border="true"] {
-            background-color: #f7f7f7; /* رمادي فاتح جداً (الخلفية العادية) */
+            background-color: #f7f7f7; /* رمادي فاتح جداً لتمييز الإطار */
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 25px;
-            border: 1px solid #ddd;
-        }
-
-        /* 5. تخصيص خلفية قسم الضيافة (العودي الفاتح) - استهداف عبر الـ ID */
-        #hospitality-section-container {
-            background-color: #F3E5F5 !important; /* لون عودي فاتح (Light Purple/Pink) */
-            padding: 15px; /* الحفاظ على نفس الحشو */
-            border-radius: 8px; /* الحفاظ على نفس انحناء الزوايا */
-            margin: -15px; /* تعويض الحشو الداخلي للحاوية الأم */
-            margin-bottom: 10px;
+            border: 1px solid #ddd; /* إضافة حد خفيف وواضح */
         }
         
         /* تقليل المسافة العلوية لتقليل الفراغات */
