@@ -232,6 +232,9 @@ def all_departments_page():
         centers_to_display = st.session_state.dynamic_hospitality_centers[:]
         
         for i, center in enumerate(centers_to_display):
+            if i >= len(st.session_state.dynamic_hospitality_centers): # فحص إضافي
+                 continue
+                 
             center_id = center['id']
             
             with st.expander(f"مركز الضيافة #{center_id}: {center['name']}", expanded=True):
@@ -903,50 +906,82 @@ def setup_initial_state():
             st.session_state[f'salary_{role}'] = default_salary
 
 def inject_rtl_css():
-    """حقن كود CSS لتعيين اتجاه النص من اليمين لليسار (RTL)."""
-    # هذا الكود يحاول عكس الاتجاه العام للعناصر الرئيسية
-    # ويضبط محاذاة النص الافتراضية.
+    """حقن كود CSS لتعيين اتجاه النص من اليمين لليسار (RTL) وتحسين الشريط الجانبي."""
     st.markdown("""
         <style>
+        /* إجبار التطبيق على العرض من اليمين لليسار */
         html {
             direction: rtl;
         }
         
-        /* ضبط محاذاة النص للعناصر الرئيسية في التطبيق */
+        /* ضبط محاذاة النص الافتراضية للعناصر الرئيسية */
         .stApp {
             text-align: right;
         }
         
-        /* ضبط محاذاة محتوى العمود الرئيسي */
-        .stApp > header, .stApp > div {
+        /* تطبيق الاتجاه على محتوى الصفحة الرئيسية بالكامل */
+        [data-testid="stAppViewBlockContainer"] {
+            direction: rtl;
+        }
+
+        /* ------------------ تحسين الشريط الجانبي (Sidebar) ------------------ */
+        
+        /* محاذاة محتوى الشريط الجانبي لليمين */
+        [data-testid="stSidebarContent"] {
+            text-align: right;
+            direction: rtl; 
+        }
+        
+        /* محاذاة عناوين الشريط الجانبي (Header/Expander) لليمين */
+        [data-testid="stSidebarContent"] .st-emotion-cache-1cypcdb h3,
+        [data-testid="stSidebarContent"] .st-emotion-cache-1cypcdb h2,
+        [data-testid="stSidebarContent"] .st-emotion-cache-1cypcdb h1 {
+            text-align: right;
+            width: 100%;
+        }
+        
+        /* محاذاة التسميات (Labels) لليمين */
+        .st-emotion-cache-10qj61q { /* Selectbox label */
+            text-align: right;
+        }
+        
+        /* محاذاة مدخلات الأرقام والنصوص والأزرار داخل الشريط الجانبي */
+        [data-testid="stSidebarContent"] .stNumberInput,
+        [data-testid="stSidebarContent"] .stTextInput,
+        [data-testid="stSidebarContent"] .stButton {
+            text-align: right;
+        }
+        
+        /* محاذاة محتوى الـ Expander لليمين داخل الشريط الجانبي */
+        [data-testid="stSidebarContent"] [data-testid="stExpander"] .st-emotion-cache-p2x0l5 {
+            text-align: right;
+        }
+
+        /* ------------------ تحسين المحتوى الداخلي (Widgets) ------------------ */
+        
+        /* إجبار جميع التسميات (Labels) في التطبيق على محاذاة اليمين */
+        label {
+            text-align: right !important;
+        }
+        
+        /* محاذاة الراديو (Radio buttons) والتوجل (Toggle) لليمين */
+        .stRadio > label, .stCheckbox > label, .stToggle > label {
+            text-align: right;
             direction: rtl;
         }
         
-        /* ضبط المحاذاة داخل الشريط الجانبي */
-        [data-testid="stSidebarContent"] {
-            text-align: right;
+        /* عكس ترتيب أيقونة التوجل (Toggle switch) لـ RTL */
+        [data-testid="stSidebarContent"] .stToggle label > div > div:nth-child(1) {
+            order: 2; /* وضع الأيقونة/المفتاح على اليسار */
         }
-        
-        /* محاذاة الإدخالات وعناصر التحكم */
-        label, .st-ck, .st-bg, .st-cd {
-            float: right;
-            margin-right: 0;
-            margin-left: auto;
-        }
-        
-        /* محاذاة الأزرار والـ metrics */
-        .stButton, .stMetric, .stDownloadButton {
-            text-align: right;
+        [data-testid="stSidebarContent"] .stToggle label > div > div:nth-child(2) {
+            order: 1; /* وضع النص على اليمين */
+            margin-left: 10px;
         }
         
         /* محاذاة عناوين الأقسام الفرعية */
         .darker-container {
             text-align: right;
-        }
-        
-        /* لجعل الجداول تعرض النص بشكل صحيح (قد لا يعمل على جميع الأجهزة/الإصدارات) */
-        .dataframe {
-            direction: rtl;
         }
         
         </style>
@@ -957,6 +992,7 @@ def sidebar_config():
     
     # إضافة الشعار في أعلى الشريط الجانبي
     # يجب أن يكون ملف logo.png موجوداً في نفس مجلد ملف app.py
+    # يمكن تعديل "size" إلى "small" أو "medium" حسب الحاجة
     st.logo("logo.png", size="large")
 
     st.sidebar.header("⚙️ الإعدادات العامة للمشروع")
@@ -997,7 +1033,8 @@ def main():
     # يجب أن تكون st.set_page_config هي أول أمر Streamlit يتم تنفيذه
     st.set_page_config(layout="wide", page_title="تخطيط القوى العاملة", page_icon=":chart_with_upwards_trend:")
     
-    inject_rtl_css() # حقن كود RTL CSS بعد إعداد الصفحة
+    # ملاحظة: inject_rtl_css يجب أن يتم استدعاؤها بعد set_page_config
+    inject_rtl_css()
     setup_initial_state()
     sidebar_config()
 
