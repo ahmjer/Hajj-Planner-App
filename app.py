@@ -832,10 +832,32 @@ def main_page_logic():
 
 st.set_page_config(page_title="مخطط القوى العاملة للحج", layout="wide", page_icon=None)
 
-# كود CSS للتنسيق
+# كود CSS للتنسيق - تطبيق معزز لخط Tajawal
 st.markdown("""
 <style>
-html, body, [class*="st-emotion-"] { direction: rtl; text-align: right; }
+/* 1. استيراد خط Tajawal من Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;700&display=swap');
+
+/* 2. تطبيق الخط Tajawal على جميع العناصر (معزز) */
+html, body, 
+[class*="st-emotion-"], /* يغطي أغلب حاويات Streamlit الجديدة */
+[data-testid*="st"], /* يغطي جميع المكونات المسماة */
+h1, h2, h3, h4, h5, h6, 
+p, div, label, span, button, input, textarea, select { 
+    font-family: 'Tajawal', sans-serif !important; 
+    direction: rtl !important; 
+}
+
+/* 3. تحديد الأوزان (معزز) */
+h1, h2, h3, h4 {
+    font-weight: 400 !important; /* وزن عادي للعناوين */
+}
+
+p, div, label, span, button {
+    font-weight: 300 !important; /* وزن خفيف للنصوص العادية */
+}
+
+/* إعدادات تنسيقية سابقة */
 [data-testid="stAppViewBlockContainer"] { padding-top: 30px !important; }
 .custom-header-line { position: fixed; top: 0; left: 0; width: 100%; height: 20px; background-color: #800020; z-index: 9999; }
 section[data-testid="stSidebar"] { text-align: right; transform: none !important; left: auto; right: 0; }
