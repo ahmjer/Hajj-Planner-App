@@ -512,7 +512,7 @@ def all_departments_page():
                         'coverage': dept.get('default_coverage', 100) / 100,
                         'ratio': dept.get('default_ratio', 1),
                         'time': dept.get('default_time', 1),
-                        'bus_count': 20,
+                        'bus_count': 100,
                         'events_multiplier': 2,
                         'required_assistant_heads': 0
                     }
@@ -581,7 +581,7 @@ def all_departments_page():
                         'coverage': dept.get('default_coverage', 100) / 100,
                         'ratio': dept.get('default_ratio', 1),
                         'time': dept.get('default_time', 1),
-                        'bus_count': 20,
+                        'bus_count': 100,
                         'events_multiplier': 2,
                         'required_assistant_heads': 0
                     }
