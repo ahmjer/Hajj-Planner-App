@@ -52,7 +52,7 @@ TRANSLATION_MAP = {
 }
 
 # -------------------------------------------------------------------
-# 2. الدوال المساعدة للحساب والمنطق
+# 2. الدوال المساعدة للحساب والمنطق (لم تتغير)
 # -------------------------------------------------------------------
 
 def calculate_time_based_staff(total_events, time_per_event_min, service_days, staff_work_hours_day):
@@ -161,17 +161,23 @@ def to_excel_budget(total_staff_per_role, service_days):
     """تستدعي دالة إنشاء البيانات وتسترجع بايتات ملف Excel للميزانية."""
     return generate_budget_data(total_staff_per_role, service_days)
 
+# -------------------------------------------------------------------
+# 3. الدوال المساعدة لإدارة المراكز (مع إضافة متغير إعادة التشغيل)
+# -------------------------------------------------------------------
+
 def add_hospitality_center():
     """تضيف مركز ضيافة جديد إلى القائمة الديناميكية."""
     new_id = st.session_state.next_center_id
     new_center = {
         'id': new_id, 
         'name': f'مركز ضيافة #{new_id}', 
-        'hajjaj_count': st.session_state['num_hajjaj_present'], # القيمة الافتراضية
+        'hajjaj_count': st.session_state['num_hajjaj_present'], 
         'active': True
     }
     st.session_state.dynamic_hospitality_centers.append(new_center)
     st.session_state.next_center_id += 1
+    # تعيين علامة لإعادة التشغيل
+    st.session_state.remove_center_rerun = True
 
 def remove_hospitality_center(center_id_to_remove):
     """تزيل مركز ضيافة بناءً على مُعرفه (ID)."""
@@ -183,9 +189,13 @@ def remove_hospitality_center(center_id_to_remove):
     ratio_key = f"Hosp_Ratio_{center_id_to_remove}"
     if 'user_settings_all' in st.session_state and ratio_key in st.session_state['user_settings_all']:
         del st.session_state['user_settings_all'][ratio_key]
+        
+    # تعيين علامة لإعادة التشغيل
+    st.session_state.remove_center_rerun = True
+
 
 # -------------------------------------------------------------------
-# 4. منطق الشاشة الموحدة الجديدة (All Departments Page Logic) - هي الشاشة الرئيسية الآن
+# 4. منطق الشاشة الموحدة الجديدة (All Departments Page Logic)
 # -------------------------------------------------------------------
 
 def all_departments_page():
@@ -213,16 +223,17 @@ def all_departments_page():
         for i, center in enumerate(centers_to_display):
             center_id = center['id']
             
-            # 💡 التعديل النهائي لضمان عدم ظهور TypeError: العنوان ثابت ويعتمد على ID فقط.
-            expander_title_label = f"مركز ضيافة #{center_id} (لإعادة التسمية راجع الحقل أدناه)"
+            # 💡 تثبيت المفتاح (Final Fix for TypeError)
+            # العنوان سيكون بسيطا ويعتمد على ID فقط
+            expander_title_label = f"مركز ضيافة #{center_id}"
+            # المفتاح يعتمد على ID فقط
             expander_title_key = f"hosp_expander_key_{center_id}"
             
             # استخدام key ثابت فقط
             with st.expander(expander_title_label, expanded=True, key=expander_title_key): 
                 
-                # 💡 عرض الاسم الفعلي للمركز بخط أغمق وفي المنتصف (لتلبية الطلب)
+                # عرض الاسم الفعلي للمركز بخط أغمق وفي المنتصف
                 current_name = st.session_state.get(f"hosp_name_{center_id}", center.get('name', f'مركز ضيافة #{center_id}'))
-                # نستخدم h4 لتوفير العنوان المنسق داخل الـ Expander
                 st.markdown(f'<h4 style="text-align: center; font-weight: 700; color: #800020;">{current_name}</h4>', unsafe_allow_html=True)
                 
                 # إبقاء تصميم الأعمدة السابق
@@ -328,7 +339,7 @@ def all_departments_page():
                 with col:
                     # إضافة مربع حول كل قسم فرعي (خلفية أغمق)
                     with st.container(border=True): 
-                        # 💡 التعديل هنا: تطبيق تنسيق التوسيط والخط الغامق على عناوين الأقسام الفرعية
+                        # تطبيق تنسيق التوسيط والخط الغامق على عناوين الأقسام الفرعية
                         st.markdown(f'<h5 style="text-align: center; font-weight: 700; margin-top: 0; margin-bottom: 10px;">{name}</h5>', unsafe_allow_html=True)
                         
                         # مدخل مساعد الرئيس الإلزامي
@@ -605,6 +616,11 @@ def all_departments_page():
 
 st.set_page_config(page_title="مخطط القوى العاملة الموحد", layout="wide", page_icon=None)
 
+# 💡 خطوة إضافية لتصحيح خطأ TypeError: إعادة التشغيل عند تعديل قائمة المراكز
+if st.session_state.get('remove_center_rerun', False):
+    st.session_state['remove_center_rerun'] = False
+    st.rerun()
+
 # كود CSS للتنسيق - تطبيق معزز لخط Tajawal
 st.markdown("""
 <style>
@@ -613,8 +629,8 @@ st.markdown("""
 
 /* 2. تطبيق الخط Tajawal على جميع العناصر (معزز) */
 html, body, 
-[class*="st-emotion-"], /* يغطي أغلب حاويات Streamlit الجديدة */
-[data-testid*="st"], /* يغطي جميع المكونات المسماة */
+[class*="st-emotion-"], 
+[data-testid*="st"], 
 h1, h2, h3, h4, h5, h6, 
 p, div, label, span, button, input, textarea, select { 
     font-family: 'Tajawal', sans-serif !important; 
@@ -623,8 +639,7 @@ p, div, label, span, button, input, textarea, select {
 
 /* 3. تطبيق التنسيق على عناوين st.expander لتكون في المنتصف وخط غامق */
 /* يستهدف العنوان الرئيسي لـ expander */
-/* البحث عن الـ class الذي يحيط بعنوان st.expander */
-.st-emotion-cache-p2n4nh { /* هذا الـ class قد يتغير، لكنه يستهدف st.expander label/header container */
+.st-emotion-cache-p2n4nh { 
     text-align: center !important; 
 }
 
@@ -636,9 +651,8 @@ p, div, label, span, button, input, textarea, select {
 /* 4. تنسيق المربعات الداخلية للإدارات (خلفية أغمق) */
 /* تستهدف الحاويات ذات الحدود داخل الأعمدة */
 div[data-testid*="stVerticalBlock"] > div[data-testid*="stVerticalBlock"] > div[data-testid*="stVerticalBlock"] > div[data-testid*="stContainer"] {
-    /* لون رمادي فاتح أغمق قليلاً من خلفية التطبيق */
     background-color: #f0f0f0 !important; 
-    border-radius: 5px; /* إضافة حواف مستديرة لتحسين المظهر */
+    border-radius: 5px; 
     padding: 10px;
 }
 
@@ -663,6 +677,11 @@ if 'dynamic_hospitality_centers' not in st.session_state:
     ]
 if 'next_center_id' not in st.session_state:
     st.session_state['next_center_id'] = 2
+    
+# تهيئة علامة إعادة التشغيل
+if 'remove_center_rerun' not in st.session_state:
+    st.session_state['remove_center_rerun'] = False
+
 
 # 7. الشريط الجانبي (Sidebar)
 with st.sidebar:
