@@ -52,7 +52,7 @@ TRANSLATION_MAP = {
 }
 
 # -------------------------------------------------------------------
-# 2. الدوال المساعدة للحساب والمنطق (لم تتغير)
+# 2. الدوال المساعدة للحساب والمنطق
 # -------------------------------------------------------------------
 
 def calculate_time_based_staff(total_events, time_per_event_min, service_days, staff_work_hours_day):
@@ -162,7 +162,7 @@ def to_excel_budget(total_staff_per_role, service_days):
     return generate_budget_data(total_staff_per_role, service_days)
 
 # -------------------------------------------------------------------
-# 3. الدوال المساعدة لإدارة المراكز (مع إضافة متغير إعادة التشغيل)
+# 3. الدوال المساعدة لإدارة المراكز (حل مشكلة RERUN)
 # -------------------------------------------------------------------
 
 def add_hospitality_center():
@@ -177,7 +177,7 @@ def add_hospitality_center():
     st.session_state.dynamic_hospitality_centers.append(new_center)
     st.session_state.next_center_id += 1
     # تعيين علامة لإعادة التشغيل
-    st.session_state.remove_center_rerun = True
+    st.session_state.center_list_modified = True
 
 def remove_hospitality_center(center_id_to_remove):
     """تزيل مركز ضيافة بناءً على مُعرفه (ID)."""
@@ -185,13 +185,13 @@ def remove_hospitality_center(center_id_to_remove):
         c for c in st.session_state.dynamic_hospitality_centers 
         if c['id'] != center_id_to_remove
     ]
-    # يجب إزالة إعدادات النسبة المخزنة في user_settings_all أيضاً لتجنب استخدام نسبة مركز محذوف
+    # إزالة إعدادات النسبة المخزنة في user_settings_all
     ratio_key = f"Hosp_Ratio_{center_id_to_remove}"
     if 'user_settings_all' in st.session_state and ratio_key in st.session_state['user_settings_all']:
         del st.session_state['user_settings_all'][ratio_key]
         
     # تعيين علامة لإعادة التشغيل
-    st.session_state.remove_center_rerun = True
+    st.session_state.center_list_modified = True
 
 
 # -------------------------------------------------------------------
@@ -211,72 +211,79 @@ def all_departments_page():
     
     # --- إدارة المراكز الديناميكية (خارج النموذج) ---
     st.markdown("#### 🏷️ الضيافة")
-    st.button("➕ إضافة مركز ضيافة جديد", on_click=add_hospitality_center, type="secondary", key="add_hosp_center_btn")
-    st.markdown("---") # فاصل واضح للقسم
+    # استخدام st.form لضمان أن التحديثات الأخرى لا تتأثر
+    with st.container():
+        st.button("➕ إضافة مركز ضيافة جديد", on_click=add_hospitality_center, type="secondary", key="add_hosp_center_btn")
+        st.markdown("---") # فاصل واضح للقسم
+        
+        # نستخدم حاوية لعرض المراكز التي يمكن إدارتها خارج النموذج
+        with st.container(border=True):
+            st.markdown("**مراكز الضيافة الديناميكية (إدارة الإغلاق/الفتح وتحديد الحجاج)**")
+            
+            centers_to_display = st.session_state.dynamic_hospitality_centers[:]
+            
+            for i, center in enumerate(centers_to_display):
+                center_id = center['id']
+                
+                # تثبيت المفتاح (Final Fix for TypeError)
+                # العنوان سيكون بسيطا ويعتمد على ID فقط
+                expander_title_label = f"مركز ضيافة #{center_id}"
+                # المفتاح يعتمد على ID فقط
+                expander_title_key = f"hosp_expander_key_{center_id}"
+                
+                # هذا هو السطر الذي يسبب الخطأ، المفتاح الآن ثابت تماماً
+                with st.expander(expander_title_label, expanded=True, key=expander_title_key): 
+                    
+                    # عرض الاسم الفعلي للمركز بخط أغمق وفي المنتصف
+                    current_name = st.session_state.get(f"hosp_name_{center_id}", center.get('name', f'مركز ضيافة #{center_id}'))
+                    st.markdown(f'<h4 style="text-align: center; font-weight: 700; color: #800020;">{current_name}</h4>', unsafe_allow_html=True)
+                    
+                    # إبقاء تصميم الأعمدة السابق
+                    col_status, col_name, col_hajjaj, col_remove = st.columns([1.5, 3, 2.5, 1])
+                    
+                    # 1. زر الإغلاق/الفتح (Toggle)
+                    new_active = col_status.toggle(
+                        "مفعل", 
+                        value=center.get('active', True), 
+                        key=f"hosp_active_{center_id}",
+                        label_visibility="visible"
+                    )
+                    st.session_state.dynamic_hospitality_centers[i]['active'] = new_active
+
+                    # 2. اسم المركز
+                    new_name = col_name.text_input(
+                        "اسم المركز", 
+                        value=center.get('name', f'مركز ضيافة #{center_id}'), 
+                        key=f"hosp_name_{center_id}",
+                        label_visibility="visible"
+                    )
+                    st.session_state.dynamic_hospitality_centers[i]['name'] = new_name
+
+                    # 3. عدد حجاج المركز
+                    new_hajjaj_count = col_hajjaj.number_input(
+                        "عدد الحجاج/الزوار (تقديري)",
+                        min_value=1, 
+                        value=center.get('hajjaj_count', st.session_state['num_hajjaj_present']), 
+                        step=100, 
+                        key=f"hosp_hajjaj_{center_id}",
+                        label_visibility="visible"
+                    )
+                    st.session_state.dynamic_hospitality_centers[i]['hajjaj_count'] = new_hajjaj_count
+                    
+                    # 4. زر الإزالة
+                    col_remove.markdown("<div style='margin-top: 29px;'>", unsafe_allow_html=True)
+                    col_remove.button(
+                        "🗑️ إزالة", 
+                        on_click=remove_hospitality_center, 
+                        args=(center_id,), 
+                        key=f"hosp_remove_{center_id}"
+                    )
+                    col_remove.markdown("</div>", unsafe_allow_html=True)
     
-    # نستخدم حاوية لعرض المراكز التي يمكن إدارتها خارج النموذج
-    with st.container(border=True):
-        st.markdown("**مراكز الضيافة الديناميكية (إدارة الإغلاق/الفتح وتحديد الحجاج)**")
-        
-        centers_to_display = st.session_state.dynamic_hospitality_centers[:]
-        
-        for i, center in enumerate(centers_to_display):
-            center_id = center['id']
-            
-            # 💡 تثبيت المفتاح (Final Fix for TypeError)
-            # العنوان سيكون بسيطا ويعتمد على ID فقط
-            expander_title_label = f"مركز ضيافة #{center_id}"
-            # المفتاح يعتمد على ID فقط
-            expander_title_key = f"hosp_expander_key_{center_id}"
-            
-            # استخدام key ثابت فقط
-            with st.expander(expander_title_label, expanded=True, key=expander_title_key): 
-                
-                # عرض الاسم الفعلي للمركز بخط أغمق وفي المنتصف
-                current_name = st.session_state.get(f"hosp_name_{center_id}", center.get('name', f'مركز ضيافة #{center_id}'))
-                st.markdown(f'<h4 style="text-align: center; font-weight: 700; color: #800020;">{current_name}</h4>', unsafe_allow_html=True)
-                
-                # إبقاء تصميم الأعمدة السابق
-                col_status, col_name, col_hajjaj, col_remove = st.columns([1.5, 3, 2.5, 1])
-                
-                # 1. زر الإغلاق/الفتح (Toggle)
-                new_active = col_status.toggle(
-                    "مفعل", 
-                    value=center.get('active', True), 
-                    key=f"hosp_active_{center_id}",
-                    label_visibility="visible"
-                )
-                st.session_state.dynamic_hospitality_centers[i]['active'] = new_active
-
-                # 2. اسم المركز
-                new_name = col_name.text_input(
-                    "اسم المركز", 
-                    value=center.get('name', f'مركز ضيافة #{center_id}'), 
-                    key=f"hosp_name_{center_id}",
-                    label_visibility="visible"
-                )
-                st.session_state.dynamic_hospitality_centers[i]['name'] = new_name
-
-                # 3. عدد حجاج المركز
-                new_hajjaj_count = col_hajjaj.number_input(
-                    "عدد الحجاج/الزوار (تقديري)",
-                    min_value=1, 
-                    value=center.get('hajjaj_count', st.session_state['num_hajjaj_present']), 
-                    step=100, 
-                    key=f"hosp_hajjaj_{center_id}",
-                    label_visibility="visible"
-                )
-                st.session_state.dynamic_hospitality_centers[i]['hajjaj_count'] = new_hajjaj_count
-                
-                # 4. زر الإزالة
-                col_remove.markdown("<div style='margin-top: 29px;'>", unsafe_allow_html=True)
-                col_remove.button(
-                    "🗑️ إزالة", 
-                    on_click=remove_hospitality_center, 
-                    args=(center_id,), 
-                    key=f"hosp_remove_{center_id}"
-                )
-                col_remove.markdown("</div>", unsafe_allow_html=True)
+    # 💡 خطوة RERUN الحاسمة: إذا تغيرت قائمة المراكز، أعد التشغيل هنا لتجنب خطأ المفاتيح.
+    if st.session_state.get('center_list_modified', False):
+        st.session_state['center_list_modified'] = False
+        st.rerun()
 
 
     st.markdown("---")
@@ -616,10 +623,17 @@ def all_departments_page():
 
 st.set_page_config(page_title="مخطط القوى العاملة الموحد", layout="wide", page_icon=None)
 
-# 💡 خطوة إضافية لتصحيح خطأ TypeError: إعادة التشغيل عند تعديل قائمة المراكز
-if st.session_state.get('remove_center_rerun', False):
-    st.session_state['remove_center_rerun'] = False
-    st.rerun()
+# تهيئة المفاتيح قبل أي منطق آخر
+if 'center_list_modified' not in st.session_state:
+    st.session_state['center_list_modified'] = False
+if 'run_calculation_all' not in st.session_state:
+    st.session_state['run_calculation_all'] = False
+if 'dynamic_hospitality_centers' not in st.session_state:
+    st.session_state['dynamic_hospitality_centers'] = [
+        {'id': 1, 'name': 'مركز ضيافة #1', 'hajjaj_count': 5000, 'active': True}
+    ]
+if 'next_center_id' not in st.session_state:
+    st.session_state['next_center_id'] = 2
 
 # كود CSS للتنسيق - تطبيق معزز لخط Tajawal
 st.markdown("""
@@ -665,22 +679,6 @@ section[data-testid="stSidebar"] { text-align: right; transform: none !important
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="custom-header-line"></div>', unsafe_allow_html=True)
-
-# تهيئة حالة الجلسة (Session State)
-if 'run_calculation_all' not in st.session_state:
-    st.session_state['run_calculation_all'] = False
-
-# تهيئة المراكز الديناميكية
-if 'dynamic_hospitality_centers' not in st.session_state:
-    st.session_state['dynamic_hospitality_centers'] = [
-        {'id': 1, 'name': 'مركز ضيافة #1', 'hajjaj_count': 5000, 'active': True}
-    ]
-if 'next_center_id' not in st.session_state:
-    st.session_state['next_center_id'] = 2
-    
-# تهيئة علامة إعادة التشغيل
-if 'remove_center_rerun' not in st.session_state:
-    st.session_state['remove_center_rerun'] = False
 
 
 # 7. الشريط الجانبي (Sidebar)
