@@ -858,5 +858,4 @@ def main_page_logic():
             st.info(f"نسبة الاحتياط الإجمالية المطبقة: {st.session_state['reserve_factor_input']}%")
             
     else:
-        st.info("⬆️ يرجى إدخال أو مراجعة معايير الاحتساب ثم الضغط على زر **'احتساب وعرض احتياج {department_type_choice}'**.")
-```http://googleusercontent.com/image_generation_content/0
+        st.info(f"⬆️ يرجى إدخال أو مراجعة معايير الاحتساب ثم الضغط على زر **'احتساب وعرض احتياج {department_type_choice}'**.")
