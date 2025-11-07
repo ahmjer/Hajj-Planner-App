@@ -20,7 +20,7 @@ DEFAULT_SALARY = {
     "مقدم خدمة": 8500,
 }
 
-# تعريف الإدارات (لم يتغير)
+# تعريف الإدارات
 DEPARTMENTS = {
     "الضيافة": [], 
     "الوصول والمغادرة": [
@@ -52,9 +52,9 @@ TRANSLATION_MAP = {
 }
 
 # -------------------------------------------------------------------
-# 2. الدوال المساعدة للحساب والمنطق (لم تتغير)
+# 2. الدوال المساعدة للحساب والمنطق
 # -------------------------------------------------------------------
-# ... (دوال calculate_time_based_staff و calculate_ratio_based_staff و distribute_staff و to_excel و generate_budget_data و to_excel_budget لم تتغير)
+
 def calculate_time_based_staff(total_events, time_per_event_min, service_days, staff_work_hours_day):
     """تحسب الاحتياج بناءً على الوقت اللازم للخدمة الكلية."""
     time_per_event_hrs = time_per_event_min / 60
@@ -160,6 +160,7 @@ def generate_budget_data(total_staff_per_role, service_days):
 def to_excel_budget(total_staff_per_role, service_days):
     """تستدعي دالة إنشاء البيانات وتسترجع بايتات ملف Excel للميزانية."""
     return generate_budget_data(total_staff_per_role, service_days)
+
 # -------------------------------------------------------------------
 # 3. الدوال المساعدة لإدارة المراكز (مع تعيين علامة التعديل وإعادة التشغيل)
 # -------------------------------------------------------------------
@@ -213,25 +214,31 @@ def all_departments_page():
         st.button("➕ إضافة مركز ضيافة جديد", on_click=add_and_rerun, type="secondary", key="add_hosp_center_btn")
         st.markdown("---") 
         
-        # 🛑 تم إزالة منطق st.rerun() الشرطي الذي كان يسبب مسح الصفحة 
-        
         with st.container(border=True):
             st.markdown("**مراكز الضيافة الديناميكية (إدارة الإغلاق/الفتح وتحديد الحجاج)**")
             
-            # تثبيت القائمة للتكرار
-            centers_to_display = st.session_state.dynamic_hospitality_centers[:]
+            # 🛑 التصحيح النهائي: التكرار على قائمة ID الثابتة
+            centers_ids_to_display = [c['id'] for c in st.session_state.dynamic_hospitality_centers]
             
-            # استخدام الفهرس المباشر على قائمة session_state 
-            for i in range(len(st.session_state.dynamic_hospitality_centers)):
+            for center_id in centers_ids_to_display:
                 
-                center = st.session_state.dynamic_hospitality_centers[i]
-                center_id = center['id']
+                # 💡 نستخدم دالة next للعثور على الفهرس الحالي للمركز
+                original_index = next(
+                    (j for j, c in enumerate(st.session_state.dynamic_hospitality_centers) if c['id'] == center_id), 
+                    None # إذا لم يتم العثور عليه، نتجاهل
+                )
+
+                if original_index is None:
+                    continue
+                    
+                # الآن، نعتمد على البيانات من القائمة الأصلية والمؤشر الثابت
+                center = st.session_state.dynamic_hospitality_centers[original_index]
                 
                 expander_title_label = f"مركز ضيافة #{center_id}"
                 # المفتاح ثابت ويعتمد على ID فقط
                 expander_title_key = f"hosp_expander_key_{center_id}"
                 
-                # استخدام الفهرس (i) للوصول وتحديث القائمة الأصلية
+                # السطر الذي كان يسبب الخطأ (الآن محمي بـ ID ثابت)
                 with st.expander(expander_title_label, expanded=True, key=expander_title_key): 
                     
                     # عرض الاسم الفعلي للمركز بخط أغمق وفي المنتصف
@@ -249,7 +256,7 @@ def all_departments_page():
                         label_visibility="visible"
                     )
                     # التحديث المباشر للفهرس
-                    st.session_state.dynamic_hospitality_centers[i]['active'] = new_active
+                    st.session_state.dynamic_hospitality_centers[original_index]['active'] = new_active
 
                     # 2. اسم المركز
                     new_name = col_name.text_input(
@@ -259,7 +266,7 @@ def all_departments_page():
                         label_visibility="visible"
                     )
                     # التحديث المباشر للفهرس
-                    st.session_state.dynamic_hospitality_centers[i]['name'] = new_name
+                    st.session_state.dynamic_hospitality_centers[original_index]['name'] = new_name
 
                     # 3. عدد حجاج المركز
                     new_hajjaj_count = col_hajjaj.number_input(
@@ -271,7 +278,7 @@ def all_departments_page():
                         label_visibility="visible"
                     )
                     # التحديث المباشر للفهرس
-                    st.session_state.dynamic_hospitality_centers[i]['hajjaj_count'] = new_hajjaj_count
+                    st.session_state.dynamic_hospitality_centers[original_index]['hajjaj_count'] = new_hajjaj_count
                     
                     # 4. زر الإزالة (يستخدم الدالة المدمجة لإعادة التشغيل)
                     col_remove.markdown("<div style='margin-top: 29px;'>", unsafe_allow_html=True)
@@ -293,14 +300,13 @@ def all_departments_page():
         st.markdown("#### ⚙️ معيار نسبة مقدمي الخدمة لمراكز الضيافة")
         with st.container(border=True): # مربع لمدخلات الضيافة
             
-            # نستخدم القائمة الأصلية مباشرة لأننا داخل Form 
+            # التكرار هنا يجب أن يكون على القائمة الأصلية لضمان استخدام أحدث القيم
             for center in st.session_state.dynamic_hospitality_centers:
                 if center['active']:
                     center_id = center['id']
                     ratio_key = f"Hosp_Ratio_{center_id}"
                     default_ratio = user_settings.get(ratio_key, 200) 
                     
-                    # نستخدم هنا current_name
                     # نستخدم هنا st.session_state مباشرة لأن عناصر التحكم قد تكون حدثت قيمة الاسم
                     current_name_for_ratio = st.session_state.get(f"hosp_name_{center_id}", center.get('name', f'مركز ضيافة #{center_id}'))
                     
@@ -314,7 +320,7 @@ def all_departments_page():
         
         st.markdown("---")
         
-        # 2. مدخلات الإدارات الثابتة الأخرى (لم تتغير)
+        # 2. مدخلات الإدارات الثابتة الأخرى
         for category_name, depts in DEPARTMENTS.items():
             if category_name == "الضيافة": 
                 continue 
@@ -391,7 +397,7 @@ def all_departments_page():
         # زر الإرسال الوحيد المسموح به داخل النموذج
         calculate_button = st.form_submit_button("🔄 احتساب وعرض النتائج الموحدة", type="primary")
 
-    # 2. التحديث وتخزين إعدادات المستخدم بعد الضغط على Submit (لم يتغير)
+    # 2. التحديث وتخزين إعدادات المستخدم بعد الضغط على Submit
     if calculate_button:
         
         # ... (منطق تحديث الإعدادات ... )
@@ -440,7 +446,6 @@ def all_departments_page():
         
         st.success("✅ جاري بدء الحساب الموحد بناءً على معاييرك المخصصة...")
         
-        # ... (منطق الحساب والعرض لم يتغير)
         # جلب المدخلات العامة
         num_hajjaj_present = st.session_state['num_hajjaj_present']
         num_hajjaj_flow = st.session_state['num_hajjaj_flow']
@@ -625,7 +630,6 @@ def all_departments_page():
 st.set_page_config(page_title="مخطط القوى العاملة الموحد", layout="wide", page_icon=None)
 
 # تهيئة المفاتيح قبل أي منطق آخر
-# تم إزالة center_list_modified لأنه لم يعد مستخدماً
 if 'run_calculation_all' not in st.session_state:
     st.session_state['run_calculation_all'] = False
 if 'dynamic_hospitality_centers' not in st.session_state:
