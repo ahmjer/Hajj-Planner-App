@@ -710,7 +710,7 @@ def app():
         else:
             st.warning("⚠️ لم يتم العثور على ملف 'logo.png' في نفس مجلد التطبيق. يرجى التأكد من مساره.")
         
-        st.title("الإعدادات العامة")
+
         
         # أزرار التبديل بين الصفحات
         col_main, col_all = st.columns(2)
@@ -728,7 +728,7 @@ def app():
             type="primary" if st.session_state['current_page'] == 'all' else "secondary",
             use_container_width=True
         )
-        
+                st.title("الإعدادات العامة")
         st.markdown("---")
         st.subheader("بيانات المدخلات الأساسية")
         
