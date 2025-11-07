@@ -832,29 +832,26 @@ def main_page_logic():
 
 st.set_page_config(page_title="مخطط القوى العاملة للحج", layout="wide", page_icon=None)
 
-# كود CSS للتنسيق - تطبيق معزز لخط Tajawal
+# كود CSS للتنسيق - تم تطبيق خط Tajawal الآن
 st.markdown("""
 <style>
 /* 1. استيراد خط Tajawal من Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;700&display=swap');
 
-/* 2. تطبيق الخط Tajawal على جميع العناصر (معزز) */
-html, body, 
-[class*="st-emotion-"], /* يغطي أغلب حاويات Streamlit الجديدة */
-[data-testid*="st"], /* يغطي جميع المكونات المسماة */
-h1, h2, h3, h4, h5, h6, 
-p, div, label, span, button, input, textarea, select { 
-    font-family: 'Tajawal', sans-serif !important; 
-    direction: rtl !important; 
+/* 2. تطبيق الخط الجديد Tajawal على جميع العناصر */
+/* لضمان الوزن الخفيف (300) لمعظم النصوص والوزن العادي (400) للعناوين */
+html, body, [class*="st-emotion-"], h1, h2, h3, h4, h5, h6, p, div, label { 
+    font-family: 'Tajawal', sans-serif; 
+    direction: rtl; 
+    text-align: right; 
 }
 
-/* 3. تحديد الأوزان (معزز) */
 h1, h2, h3, h4 {
-    font-weight: 400 !important; /* وزن عادي للعناوين */
+    font-weight: 400; /* وزن عادي للعناوين */
 }
 
-p, div, label, span, button {
-    font-weight: 300 !important; /* وزن خفيف للنصوص العادية */
+p, div, label, span {
+    font-weight: 300; /* وزن خفيف للنصوص العادية */
 }
 
 /* إعدادات تنسيقية سابقة */
