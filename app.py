@@ -215,14 +215,17 @@ def all_departments_page():
         st.button("➕ إضافة مركز ضيافة جديد", on_click=add_hospitality_center, type="secondary", key="add_hosp_center_btn")
         st.markdown("---") 
         
-        # 💡 التصحيح الجذري: إذا تم تعديل القائمة، نقوم بإعادة التشغيل ونخرج من الدالة.
+        # إنشاء مكان مخصص للعرض
+        center_display_placeholder = st.empty()
+
+        # 💡 التصحيح الجذري: إذا تم تعديل القائمة، نقوم بإعادة التشغيل ونعرض مؤشر الانتظار فقط.
         if st.session_state.get('center_list_modified', False):
-            st.warning("جاري تحديث قائمة المراكز... يرجى الانتظار.")
+            center_display_placeholder.warning("جاري تحديث قائمة المراكز... يرجى الانتظار.")
             st.session_state['center_list_modified'] = False
             st.rerun()
 
-        # إذا لم يكن هناك تعديل، نستمر في عرض المراكز
-        with st.container(border=True):
+        # إذا لم يكن هناك تعديل، نستمر في عرض المراكز داخل المكان المخصص
+        with center_display_placeholder.container(border=True):
             st.markdown("**مراكز الضيافة الديناميكية (إدارة الإغلاق/الفتح وتحديد الحجاج)**")
             
             centers_to_display = st.session_state.dynamic_hospitality_centers[:]
@@ -233,7 +236,7 @@ def all_departments_page():
                 expander_title_label = f"مركز ضيافة #{center_id}"
                 expander_title_key = f"hosp_expander_key_{center_id}"
                 
-                # هذا هو السطر الذي يسبب الخطأ
+                # هذا هو السطر الذي كان يسبب الخطأ - محاط الآن بـ st.empty.container
                 with st.expander(expander_title_label, expanded=True, key=expander_title_key): 
                     
                     # عرض الاسم الفعلي للمركز بخط أغمق وفي المنتصف
@@ -244,7 +247,6 @@ def all_departments_page():
                     col_status, col_name, col_hajjaj, col_remove = st.columns([1.5, 3, 2.5, 1])
                     
                     # 1. زر الإغلاق/الفتح (Toggle)
-                    # يجب أن يكون المفتاح مستقرًا أيضاً
                     new_active = col_status.toggle(
                         "مفعل", 
                         value=center.get('active', True), 
