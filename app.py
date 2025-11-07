@@ -713,7 +713,6 @@ def app():
         st.title("الإعدادات العامة")
         
         # أزرار التبديل بين الصفحات
-        st.subheader("نافذة العرض")
         col_main, col_all = st.columns(2)
         
         col_main.button(
