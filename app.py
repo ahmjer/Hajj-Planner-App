@@ -396,7 +396,7 @@ def all_departments_page():
     # القسم الرئيسي الأول: الضيافة (إدارة المراكز والنسبة)
     with st.container(border=True): # الإطار يحيط بكل قسم الضيافة
         
-        st.markdown("#### 🏷️ الضيافة (إدارة المراكز ومعيار النسبة)")
+        st.markdown("####  مراكز الضيافة ")
         
         col_btn, col_info = st.columns([1, 2])
         col_btn.button("➕ إضافة مركز ضيافة جديد", on_click=add_hospitality_center, type="secondary", key="add_hosp_center_btn")
