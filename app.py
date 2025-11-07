@@ -11,7 +11,7 @@ import os
 TOTAL_WORK_HOURS = 24
 SUPERVISORS_PER_SHIFT = 1
 ASSISTANT_HEADS_PER_SHIFT = 1
-DEFAULT_HEAD_ASSISTANT_RATIO = 4
+DEFAULT_HEAD_ASSISTANT_RATIO = 1
 
 DEFAULT_SALARY = {
     "رئيس": 37000,
@@ -24,17 +24,17 @@ DEFAULT_SALARY = {
 DEPARTMENTS = {
     "الضيافة": [], # يتم التعامل معها ديناميكياً
     "الوصول والمغادرة": [
-        {"name": "استقبال الهجرة", "type": "Ratio", "default_ratio": 100, "default_coverage": 30, "default_criterion": 'Flow'},
+        {"name": "استقبال الهجرة", "type": "Ratio", "default_ratio": 100, "default_coverage": 50, "default_criterion": 'Flow'},
         {"name": "استقبال المطار", "type": "Ratio", "default_ratio": 100, "default_coverage": 50, "default_criterion": 'Flow'},
         {"name": "استقبال القطار", "type": "Ratio", "default_ratio": 100, "default_coverage": 20, "default_criterion": 'Flow'},
-        {"name": "إرشاد الحافلات", "type": "Bus_Ratio", "default_ratio": 2, "default_criterion": 'Flow'},
+        {"name": "إرشاد الحافلات", "type": "Bus_Ratio", "default_ratio": 1, "default_criterion": 'Flow'},
     ],
     "الدعم والمساندة": [
-        {"name": "متابعة ميدانية", "type": "Ratio", "default_ratio": 100, "default_coverage": 100, "default_criterion": 'Present'},
-        {"name": "الخدمات الميدانية والاسكان ", "type": "Ratio", "default_ratio": 100, "default_coverage": 100, "default_criterion": 'Present'},
-        {"name": "الزيارة وإرشاد التأهيين ", "type": "Ratio", "default_ratio": 80, "default_coverage": 100, "default_criterion": 'Present'},
-        {"name": " الدعم والضيافة", "type": "Time", "default_time": 2.5, "default_coverage": 100, "default_criterion": 'Present'},
-        {"name": "الرعاية صحية", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
+        {"name": "متابعة ميدانية", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
+        {"name": "الخدمات الميدانية والاسكان ", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
+        {"name": "الزيارة وإرشاد التأهيين ", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
+        {"name": " الدعم والضيافة", "type": "Time", "default_time": 5.0, "default_coverage": 100, "default_criterion": 'Present'},
+        {"name": "الرعاية صحية", "type": "Ratio", "default_ratio": 1500, "default_coverage": 100, "default_criterion": 'Present'},
     ]
 }
 
@@ -98,38 +98,35 @@ def to_excel(df):
 
 def generate_budget_data(total_staff_per_role, service_days):
     budget_data = []
-    final_total_monthly_cost = 0
+    # تم تغيير اسم المتغير ليعكس التكلفة الإجمالية للمشروع
+    final_total_project_cost = 0 
     
     for role, staff_count in total_staff_per_role.items():
-        # التأكد من استخدام المفتاح الصحيح لاستعادة الراتب
-        role_key = role
-        if role == "مشرف ميداني":
-            # في الـ session state، قد يكون المخزّن هو Field_Supervisor، لكن الـ role هنا هو الاسم بالعربي
-            # نستخدم الـ TRANSLATION_MAP للحصول على الاسم الإنجليزي المقابل (Field_Supervisor) ثم الاسم العربي
-            # لكن عند جلب الراتب، الـ key في session_state هو بالعربي (مثل: salary_رئيس)
-            role_key = "مشرف ميداني" # نثبت الاسم العربي ليتطابق مع key الـ session_state
-        
-        salary = st.session_state.get(f'salary_{role_key}', DEFAULT_SALARY.get(role, 0))
-        monthly_cost = staff_count * salary
-        final_total_monthly_cost += monthly_cost
+        # الراتب/المكافأة يمثل الآن التكلفة الإجمالية للموظف طوال فترة المشروع
+        salary_or_reward = st.session_state.get(f'salary_{role}', DEFAULT_SALARY.get(role, 0))
+        # التكلفة الإجمالية لهذا الدور للمشروع
+        total_cost_per_role = staff_count * salary_or_reward
+        final_total_project_cost += total_cost_per_role
         
         budget_data.append({
             "الرتبة الوظيفية": role,
             "العدد الإجمالي المطلوب": staff_count,
-            "متوسط الراتب الشهري (ريال)": salary,
-            "التكلفة الشهرية الإجمالية (ريال)": monthly_cost
+            "متوسط مكافأة المشروع (ريال)": salary_or_reward, # تم تغيير التسمية
+            "التكلفة الإجمالية للمشروع (ريال)": total_cost_per_role # تم تغيير التسمية
         })
 
-    total_project_cost = final_total_monthly_cost / 30 * service_days
+    # إجمالي تكلفة المشروع هو مجموع التكاليف الإجمالية للأدوار (إزالة منطق القسمة والضرب بمدة الخدمة)
+    total_project_cost = final_total_project_cost
     
     df_budget = pd.DataFrame(budget_data)
     
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df_budget.to_excel(writer, index=False, sheet_name='تفاصيل_الرواتب_الشهرية')
+        df_budget.to_excel(writer, index=False, sheet_name='تفاصيل_مكافآت_المشروع') # تم تحديث اسم الورقة
         summary_data = {
-            "البيان": ["إجمالي التكلفة الشهرية (ريال)", f"إجمالي تكلفة المشروع ({service_days} يوم) (ريال)", "إجمالي الموظفين (بدون احتياط)"],
-            "القيمة": [final_total_monthly_cost, total_project_cost, sum(total_staff_per_role.values())]
+            # تم تبسيط ملخص الميزانية
+            "البيان": ["إجمالي تكلفة المكافآت (ريال)", "إجمالي الموظفين (بدون احتياط)"],
+            "القيمة": [total_project_cost, sum(total_staff_per_role.values())]
         }
         df_summary = pd.DataFrame(summary_data)
         df_summary.to_excel(writer, startrow=1, startcol=1, index=False, sheet_name='ملخص_الميزانية')
@@ -185,8 +182,7 @@ def main_page_logic():
     # جلب الإعدادات العامة
     hajjaj_present = st.session_state.get('num_hajjaj_present', 100000)
     hajjaj_flow = st.session_state.get('num_hajjaj_flow', 50000)
-    # استخدام القيمة الثابتة لـ service_days من session state
-    service_days = st.session_state.get('service_days', 8) 
+    service_days = st.session_state.get('service_days', 8)
     staff_work_hours_day = st.session_state.get('staff_hours', 8)
     reserve_factor = st.session_state.get('reserve_factor_input', 0) / 100
     shifts_count = st.session_state.get('shifts_count', 3)
@@ -377,9 +373,9 @@ def main_page_logic():
         
         with col_budget_btn:
              st.download_button(
-                label="💰 **تصدير ميزانية الرواتب (Excel)**",
+                label="💰 **تصدير ميزانية المكافآت (Excel)**",
                 data=to_excel_budget(budget_data_main, service_days),
-                file_name=f'ميزانية_الرواتب_{selected_department_name}.xlsx',
+                file_name=f'ميزانية_المكافآت_{selected_department_name}.xlsx',
                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 type="primary",
                 key="download_budget_excel_main"
@@ -393,7 +389,6 @@ def all_departments_page():
     st.title(" تخطيط القوى العاملة الموحد")
     st.markdown("---")
     
-    st.subheader("1. ضبط معايير الاحتساب لجميع الإدارات")
     
     if 'user_settings_all' not in st.session_state:
             st.session_state['user_settings_all'] = {}
@@ -405,7 +400,7 @@ def all_departments_page():
     # القسم الرئيسي الأول: الضيافة (إدارة المراكز والنسبة)
     with st.container(border=True): # الإطار يحيط بكل قسم الضيافة
         
-        st.markdown("#### 🏷️ الضيافة (إدارة المراكز ومعيار النسبة)")
+        st.markdown("####  مراكز الضيافة ")
         
         col_btn, col_info = st.columns([1, 2])
         col_btn.button("➕ إضافة مركز ضيافة جديد", on_click=add_hospitality_center, type="secondary", key="add_hosp_center_btn")
@@ -416,7 +411,7 @@ def all_departments_page():
             # إدارة المراكز (خارج النموذج)
             with st.container(border=False): # حاوية داخلية بدون إطار
                 st.markdown("---")
-                st.markdown("**إدارة المراكز (الإغلاق/الفتح وتحديد الحجاج)**")
+                st.markdown("**إدارة المراكز (الإغلاق/الفتح )**")
                 
                 centers_to_display = st.session_state.dynamic_hospitality_centers[:]
                 
@@ -471,7 +466,7 @@ def all_departments_page():
         
         # --- 1. نسبة الضيافة (داخل النموذج) ---
         with st.container(border=True):
-            st.markdown("#### ⚙️ معيار نسبة مقدمي الخدمة لمراكز الضيافة")
+            st.markdown("####  معيار نسبة مقدمي الخدمة لمراكز الضيافة")
             
             active_centers = [c for c in st.session_state.dynamic_hospitality_centers[:] if c['active']]
             if not active_centers:
@@ -689,7 +684,6 @@ def all_departments_page():
         
         num_hajjaj_present = st.session_state['num_hajjaj_present']
         num_hajjaj_flow = st.session_state['num_hajjaj_flow']
-        # جلب القيمة الثابتة
         service_days = st.session_state['service_days']
         staff_work_hours_day = st.session_state.get('staff_hours', 8)
         reserve_factor = st.session_state['reserve_factor_input'] / 100
@@ -832,9 +826,9 @@ def all_departments_page():
             
         with col_budget_btn:
             st.download_button(
-                label="💰 **تصدير ميزانية الرواتب (Excel)**",
+                label="💰 **تصدير ميزانية المكافآت (Excel)**",
                 data=to_excel_budget(total_staff_per_role, service_days),
-                file_name='ميزانية_الرواتب_التقديرية.xlsx',
+                file_name='ميزانية_المكافآت_التقديرية.xlsx',
                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 type="primary",
                 key="download_budget_excel"
@@ -914,7 +908,7 @@ def app():
         }
         
         /* تقليل المسافة العلوية لتقليل الفراغات */
-        div.block-container{padding-top:1rem;}
+        div.block-container{padding-top: 2.5rem;}
         </style>
     """, unsafe_allow_html=True)
     
@@ -932,11 +926,11 @@ def app():
     
     # (نحتفظ ببقية تهيئة الـ session state كما هي...)
     if 'num_hajjaj_present' not in st.session_state:
-        st.session_state['num_hajjaj_present'] = 100000
+        st.session_state['num_hajjaj_present'] = 15000
     if 'num_hajjaj_flow' not in st.session_state:
-        st.session_state['num_hajjaj_flow'] = 50000
+        st.session_state['num_hajjaj_flow'] = 6000
     if 'service_days' not in st.session_state:
-        st.session_state['service_days'] = 8 # القيمة الافتراضية تبقى
+        st.session_state['service_days'] = 8
         
     st.session_state['staff_hours'] = 8
     st.session_state['shifts_count'] = 3
@@ -961,10 +955,10 @@ def app():
         else:
             st.warning("⚠️ لم يتم العثور على ملف 'logo.png' في نفس مجلد التطبيق. يرجى التأكد من مساره.")
         
-        st.title("⚙️ الإعدادات العامة")
+        st.title(" الإعدادات العامة")
         
         # أزرار التبديل بين الصفحات
-        st.subheader("نافذة العرض")
+
         col_main, col_all = st.columns(2)
         
         col_main.button(
@@ -982,7 +976,7 @@ def app():
         )
         
         st.markdown("---")
-        st.subheader("بيانات المدخلات الأساسية")
+        st.subheader("البيانات الأساسية")
         
         st.number_input(
             "إجمالي الحجاج/الزوار (المتواجدين)",
@@ -992,10 +986,10 @@ def app():
             "إجمالي الحجاج/الزوار (التدفق اليومي)",
             min_value=1, value=st.session_state['num_hajjaj_flow'], step=1000, key="num_hajjaj_flow"
         )
-        
-        # 🗑️ تم حذف حقل إدخال "مدة الخدمة (يوم)" وتم تثبيت قيمته على 8 أيام في التهيئة.
-        st.info(f"**مدة الخدمة (يوم):** {st.session_state['service_days']} (ثابتة للاحتساب)")
-
+        st.number_input(
+            "مدة الخدمة (يوم)",
+            min_value=1, value=st.session_state['service_days'], step=1, key="service_days"
+        )
 
         st.markdown("---")
         st.subheader("معايير الدوام والهيكل")
@@ -1022,12 +1016,12 @@ def app():
         
         st.markdown("---")
         
-        st.subheader("💰 تعديل الرواتب الشهرية")
+        st.subheader("متوسط المكافاءات")
         
         for role, default_salary in DEFAULT_SALARY.items():
             key = f'salary_{role}'
             st.number_input(
-                f"راتب **{role}** (ريال)",
+                f"مكافاءة **{role}** (ريال)",
                 min_value=1,
                 value=st.session_state[key],
                 step=100,
