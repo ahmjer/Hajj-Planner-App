@@ -462,7 +462,7 @@ def all_departments_page():
         
         # --- 1. نسبة الضيافة (داخل النموذج) ---
         with st.container(border=True):
-            st.markdown("#### ⚙️ معيار نسبة مقدمي الخدمة لمراكز الضيافة")
+            st.markdown("####  معيار نسبة مقدمي الخدمة لمراكز الضيافة")
             
             active_centers = [c for c in st.session_state.dynamic_hospitality_centers[:] if c['active']]
             if not active_centers:
