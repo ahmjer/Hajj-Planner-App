@@ -387,7 +387,6 @@ def all_departments_page():
         # زر الإرسال الوحيد المسموح به داخل النموذج
         calculate_button = st.form_submit_button("🔄 احتساب وعرض النتائج الموحدة", type="primary")
 
-    # ... (بقية منطق الحساب والعرض) ...
     # 2. التحديث وتخزين إعدادات المستخدم بعد الضغط على Submit
     if calculate_button:
         
@@ -859,3 +858,96 @@ def main_page_logic():
             
     else:
         st.info(f"⬆️ يرجى إدخال أو مراجعة معايير الاحتساب ثم الضغط على زر **'احتساب وعرض احتياج {department_type_choice}'**.")
+
+
+# -------------------------------------------------------------------
+# 6. إعدادات الحالة الابتدائية ومنطق عرض الصفحة
+# -------------------------------------------------------------------
+
+def setup_initial_state():
+    """تهيئة متغيرات Session State الافتراضية إذا لم تكن موجودة."""
+    if 'current_page' not in st.session_state:
+        st.session_state['current_page'] = 'all' # نبدأ بوضع التخطيط الموحد
+    
+    # الإعدادات العامة للمشروع (يمكن تعديلها في القائمة الجانبية)
+    if 'num_hajjaj_present' not in st.session_state:
+        st.session_state['num_hajjaj_present'] = 20000
+    if 'num_hajjaj_flow' not in st.session_state:
+        st.session_state['num_hajjaj_flow'] = 5000
+    if 'service_days' not in st.session_state:
+        st.session_state['service_days'] = 7
+    if 'staff_hours' not in st.session_state:
+        st.session_state['staff_hours'] = 12
+    if 'reserve_factor_input' not in st.session_state:
+        st.session_state['reserve_factor_input'] = 20
+    if 'shifts_count' not in st.session_state:
+        st.session_state['shifts_count'] = 2
+    if 'ratio_supervisor' not in st.session_state:
+        st.session_state['ratio_supervisor'] = 8
+    if 'ratio_assistant_head' not in st.session_state:
+        st.session_state['ratio_assistant_head'] = 4
+        
+    # إعدادات الضيافة الديناميكية
+    if 'dynamic_hospitality_centers' not in st.session_state:
+        # نبدأ بمركزين افتراضيين
+        st.session_state.dynamic_hospitality_centers = [
+            {'id': 1, 'name': 'مركز ضيافة رئيسي أ', 'hajjaj_count': 15000, 'active': True},
+            {'id': 2, 'name': 'مركز ضيافة فرعي ب', 'hajjaj_count': 5000, 'active': True}
+        ]
+    if 'next_center_id' not in st.session_state:
+        st.session_state.next_center_id = 3 # يبدأ بالرقم التالي للمراكز الافتراضية
+
+    # تهيئة إعدادات الرواتب الافتراضية
+    for role, default_salary in DEFAULT_SALARY.items():
+        if f'salary_{role}' not in st.session_state:
+            st.session_state[f'salary_{role}'] = default_salary
+
+def sidebar_config():
+    """إعداد القائمة الجانبية لإدخال البيانات العامة."""
+    
+    st.sidebar.header("⚙️ الإعدادات العامة للمشروع")
+    
+    # قسم المدخلات الرئيسية
+    with st.sidebar.expander("بيانات الحجاج والخدمة", expanded=True):
+        st.number_input("عدد الحجاج المتواجدين (للحجم)", min_value=1, value=st.session_state['num_hajjaj_present'], step=1000, key="num_hajjaj_present")
+        st.number_input("التدفق اليومي للحجاج (للحركة)", min_value=1, value=st.session_state['num_hajjaj_flow'], step=500, key="num_hajjaj_flow")
+        st.number_input("عدد أيام الخدمة الإجمالية", min_value=1, value=st.session_state['service_days'], step=1, key="service_days")
+        st.number_input("ساعات عمل الموظف اليومية", min_value=1, max_value=12, value=st.session_state['staff_hours'], step=1, key="staff_hours")
+
+    # قسم الهيكل الإداري
+    with st.sidebar.expander("معايير الهيكل الإداري والاحتياط", expanded=True):
+        st.number_input("عدد الورديات اليومية", min_value=1, max_value=3, value=st.session_state['shifts_count'], step=1, key="shifts_count")
+        st.number_input("نسبة الاحتياط الإجمالية (%)", min_value=0, max_value=100, value=st.session_state['reserve_factor_input'], step=5, key="reserve_factor_input")
+        st.number_input("معيار المشرف/مقدم الخدمة (موظف/مشرف)", min_value=1, value=st.session_state['ratio_supervisor'], step=1, key="ratio_supervisor")
+        st.number_input("معيار مساعد الرئيس/مشرف (مشرف/مساعد)", min_value=1, value=st.session_state['ratio_assistant_head'], step=1, key="ratio_assistant_head")
+
+    # قسم الرواتب
+    with st.sidebar.expander("متوسطات الرواتب الشهرية (ريال)", expanded=False):
+        for role_arabic in DEFAULT_SALARY.keys():
+            st.number_input(f"راتب {role_arabic}", min_value=1, value=st.session_state[f'salary_{role_arabic}'], step=500, key=f"salary_{role_arabic}")
+
+    st.sidebar.markdown("---")
+    
+    # أزرار التبديل بين الصفحات
+    st.sidebar.header("🗺️ التنقل بين الصفحات")
+    
+    if st.session_state['current_page'] == 'main':
+        st.sidebar.button("📊 التخطيط الموحد لكل الإدارات", on_click=switch_to_all, type="primary")
+        st.sidebar.info("أنت في صفحة الحساب الفردي.")
+    else:
+        st.sidebar.info("أنت في صفحة التخطيط الموحد.")
+        st.sidebar.button("⚙️ الحساب الفردي لإدارة معينة", on_click=switch_to_main, type="secondary")
+
+def main():
+    """الدالة الرئيسية لتشغيل التطبيق."""
+    st.set_page_config(layout="wide", page_title="تخطيط القوى العاملة")
+    setup_initial_state()
+    sidebar_config()
+
+    if st.session_state['current_page'] == 'all':
+        all_departments_page()
+    elif st.session_state['current_page'] == 'main':
+        main_page_logic()
+
+if __name__ == '__main__':
+    main()
