@@ -95,6 +95,7 @@ def to_excel(df):
     processed_data = output.getvalue()
     return processed_data
 
+# الدالة القديمة لصفحة الاحتساب الفردي (تمت إعادة تسميتها)
 def generate_budget_data(total_staff_per_role, service_days):
     budget_data = []
     final_total_project_cost = 0 
@@ -128,8 +129,156 @@ def generate_budget_data(total_staff_per_role, service_days):
         
     return output.getvalue()
 
+# دالة مساعدة للملائمة مع الاستخدام السابق (الاحتساب الفردي)
 def to_excel_budget(total_staff_per_role, service_days):
     return generate_budget_data(total_staff_per_role, service_days)
+
+
+# **الدالة الجديدة: لإنشاء ملف الميزانية الموحد المفصل مع تنسيق الإطارات**
+def generate_unified_detailed_budget_excel(detailed_breakdowns, total_staff_per_role):
+    
+    ROLES = ["رئيس", "مساعد رئيس", "مشرف فترة", "مقدم خدمة"]
+    final_data = []
+
+    # 1. بناء البيانات لكل صف (إدارة فرعية)
+    for entry in detailed_breakdowns:
+        dept_name = entry['الإدارة']
+        category = entry['القسم']
+        
+        dept_row = {
+            "القسم الرئيسي": category,
+        }
+        
+        dept_total_staff = 0
+        dept_total_cost = 0
+        
+        for role in ROLES:
+            staff_count = entry.get(role, 0)
+            
+            # جلب قيمة المكافأة
+            try:
+                # يجب أن تكون st.session_state متاحة في سياق تشغيل Streamlit
+                salary_or_reward = st.session_state.get(f'salary_{role}', DEFAULT_SALARY.get(role, 0))
+            except NameError:
+                # في حال اختبار الكود خارج سياق Streamlit
+                salary_or_reward = DEFAULT_SALARY.get(role, 0)
+
+            total_cost_per_role = staff_count * salary_or_reward
+            
+            # إضافة الأعمدة الثلاثة لكل رتبة
+            dept_row[f"{role} (عدد)"] = staff_count
+            dept_row[f"{role} (متوسط مكافأة)"] = salary_or_reward
+            dept_row[f"{role} (إجمالي التكلفة)"] = total_cost_per_role # هذا العمود سيحصل على الإطار السميك
+            
+            dept_total_staff += staff_count
+            dept_total_cost += total_cost_per_role
+        
+        # إضافة إجماليات الإدارة
+        dept_row["الإجمالي العددي للإدارة"] = dept_total_staff
+        dept_row["الإجمالي النقدي للإدارة (ريال)"] = dept_total_cost
+        
+        dept_row['الإدارة الفرعية'] = dept_name
+        
+        final_data.append(dept_row)
+
+    df_budget = pd.DataFrame(final_data)
+
+    # 2. تحديد ترتيب الأعمدة
+    final_columns_order = ["القسم الرئيسي"]
+    for role in ROLES:
+        final_columns_order.extend([
+            f"{role} (عدد)", 
+            f"{role} (متوسط مكافأة)", 
+            f"{role} (إجمالي التكلفة)"
+        ])
+    final_columns_order.extend(["الإجمالي العددي للإدارة", "الإجمالي النقدي للإدارة (ريال)"])
+    
+    # اختيار وإعادة ترتيب الأعمدة
+    df_budget = df_budget[['الإدارة الفرعية'] + final_columns_order]
+
+    # 3. إنشاء صف الإجمالي العام
+    grand_total_row_data = {"الإدارة الفرعية": "الإجمالي العام", "القسم الرئيسي": '-'}
+    grand_total_staff_count = sum(total_staff_per_role.values())
+    grand_total_cost = 0
+
+    for role in ROLES:
+        staff_count = total_staff_per_role.get(role, 0)
+        try:
+            salary_or_reward = st.session_state.get(f'salary_{role}', DEFAULT_SALARY.get(role, 0))
+        except NameError:
+            salary_or_reward = DEFAULT_SALARY.get(role, 0)
+            
+        total_cost_per_role = staff_count * salary_or_reward
+        grand_total_cost += total_cost_per_role
+
+        grand_total_row_data[f"{role} (عدد)"] = staff_count
+        grand_total_row_data[f"{role} (متوسط مكافأة)"] = '-' # القيمة غير ذات معنى في الإجمالي العام
+        grand_total_row_data[f"{role} (إجمالي التكلفة)"] = total_cost_per_role
+        
+    grand_total_row_data["الإجمالي العددي للإدارة"] = grand_total_staff_count
+    grand_total_row_data["الإجمالي النقدي للإدارة (ريال)"] = grand_total_cost
+    
+    df_budget = pd.concat([df_budget, pd.DataFrame([grand_total_row_data])], ignore_index=True)
+    
+    # 4. إعداد DataFrame النهائي (تعيين الإدارة الفرعية كـ Index)
+    df_budget.set_index("الإدارة الفرعية", inplace=True)
+    
+    # --- 5. التصدير وتطبيق التنسيق (الإطار السميك) ---
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        
+        sheet_name = 'الميزانية_المفصلة_الموحدة'
+        # كتابة البيانات إلى ورقة العمل
+        # index=True لإظهار عمود الإدارة الفرعية كعمود أول
+        df_budget.to_excel(writer, index=True, sheet_name=sheet_name) 
+        
+        workbook = writer.book
+        worksheet = writer.sheets[sheet_name]
+
+        # تنسيق الإطار السميك (خط سميك على اليمين)
+        thick_right_border = workbook.add_format({'right': 5}) 
+        # تنسيق صف الإجمالي العام (خط سميك على اليمين وخط عريض)
+        grand_total_format = workbook.add_format({'right': 5, 'bold': True})
+        
+        # متغيرات حساب الفهرس
+        # الإدارة الفرعية (الفهرس) = 0
+        # القسم الرئيسي = 1
+        # بداية بيانات الرتب الوظيفية = 2
+        
+        num_data_rows = len(df_budget) 
+        last_row = num_data_rows # صف الإجمالي العام
+        
+        # تطبيق الإطار السميك على عمود "إجمالي التكلفة" لكل رتبة وظيفية
+        for i, role in enumerate(ROLES):
+            # فهرس العمود الخاص بـ "إجمالي التكلفة" (يقع في نهاية كل مجموعة ثلاثية)
+            # فهرس البداية (2) + (تكرار الرتبة * 3) + 2
+            border_col_index = 2 + (i * 3) + 2
+            
+            header_text_key = f"{role} (إجمالي التكلفة)"
+            
+            # 1. تطبيق التنسيق على صف العنوان (Row 0)
+            # تنسيق خاص بالعنوان (خط عريض + إطار)
+            header_format = workbook.add_format({'right': 5, 'bold': True, 'align': 'center'}) 
+            worksheet.write_string(0, border_col_index, header_text_key, header_format) 
+            
+            # 2. تطبيق التنسيق على صفوف البيانات (Row 1 to last_row - 1)
+            for row_num in range(1, last_row):
+                # جلب القيمة من DataFrame
+                df_col_index = df_budget.columns.get_loc(header_text_key)
+                cell_value = df_budget.iloc[row_num - 1, df_col_index]
+                
+                # إعادة كتابة القيمة بتنسيق الإطار السميك
+                worksheet.write(row_num, border_col_index, cell_value, thick_right_border)
+
+            # 3. تطبيق التنسيق على صف الإجمالي العام (Last Row)
+            if last_row > 0:
+                df_col_index = df_budget.columns.get_loc(header_text_key)
+                cell_value = df_budget.iloc[last_row - 1, df_col_index] # القيمة في آخر صف
+                worksheet.write(last_row, border_col_index, cell_value, grand_total_format)
+                
+        
+    return output.getvalue()
+
 
 def add_hospitality_center(is_default=False):
     """تضيف مركز ضيافة جديد (مع خيار لجعله الافتراضي)."""
@@ -695,8 +844,9 @@ def all_departments_page():
 
         all_results = []
         total_staff_needed = 0
+        detailed_staff_breakdowns = [] # قائمة جديدة لتفاصيل الميزانية
         
-        # مجموع إجمالي الموظفين لكل دور (لحساب الميزانية)
+        # مجموع إجمالي الموظفين لكل دور (لحساب الميزانية المجمعة)
         total_staff_per_role = {
             "رئيس": 0,
             "مساعد رئيس": 0,
@@ -728,9 +878,16 @@ def all_departments_page():
 
                 translated_breakdown = {TRANSLATION_MAP.get(k, k): v for k, v in staff_breakdown.items()}
                 
-                # تجميع إجمالي الموظفين لكل دور (للميزانية)
+                # تجميع إجمالي الموظفين لكل دور (للميزانية المجمعة)
                 for role, count in translated_breakdown.items():
                     total_staff_per_role[role] += count
+
+                # **جمع التفاصيل لملف الإكسيل المفصل للميزانية**
+                detailed_staff_breakdowns.append({
+                    "القسم": "الضيافة",
+                    "الإدارة": dept_name,
+                    **translated_breakdown
+                })
 
                 result_entry = {"الإدارة": dept_name, "القسم": "الضيافة"}
                 result_entry.update(translated_breakdown)
@@ -787,9 +944,16 @@ def all_departments_page():
 
             translated_breakdown = {TRANSLATION_MAP.get(k, k): v for k, v in staff_breakdown.items()}
             
-            # تجميع إجمالي الموظفين لكل دور (للميزانية)
+            # تجميع إجمالي الموظفين لكل دور (للميزانية المجمعة)
             for role, count in translated_breakdown.items():
                 total_staff_per_role[role] += count
+
+            # **جمع التفاصيل لملف الإكسيل المفصل للميزانية**
+            detailed_staff_breakdowns.append({
+                "القسم": dept_info['category'],
+                "الإدارة": dept_name,
+                **translated_breakdown
+            })
                 
             result_entry = {"الإدارة": dept_name, "القسم": dept_info['category']}
             result_entry.update(translated_breakdown)
@@ -843,10 +1007,11 @@ def all_departments_page():
             )
             
         with col_budget_btn:
+            # استخدام الدالة الجديدة التي تطبق تنسيق الإطارات
             st.download_button(
-                label="💰 **تصدير ميزانية المكافآت (Excel)**",
-                data=to_excel_budget(total_staff_per_role, service_days),
-                file_name='ميزانية_المكافآت_التقديرية.xlsx',
+                label="💰 **تصدير ميزانية المكافآت المفصلة (Excel)**",
+                data=generate_unified_detailed_budget_excel(detailed_staff_breakdowns, total_staff_per_role), 
+                file_name='ميزانية_المكافآت_المفصلة.xlsx',
                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 type="primary",
                 key="download_budget_excel"
@@ -962,8 +1127,6 @@ def app():
     if 'reserve_factor_input' not in st.session_state:
         st.session_state['reserve_factor_input'] = 0
     
-    # تم حذف تهيئة ratio_supervisor و ratio_assistant_head
-    
     for role, default_salary in DEFAULT_SALARY.items():
         if f'salary_{role}' not in st.session_state:
             st.session_state[f'salary_{role}'] = default_salary
@@ -1027,8 +1190,6 @@ def app():
         
         st.markdown("---")
         
-        # تم حذف قسم "معايير الهيكل القيادي" بالكامل
-        
         st.subheader("متوسط المكافآت") # تم التعديل
         
         for role, default_salary in DEFAULT_SALARY.items():
@@ -1050,4 +1211,5 @@ def app():
         all_departments_page()
 
 if __name__ == "__main__":
+    # تشغيل التطبيق
     app()
