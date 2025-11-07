@@ -6,7 +6,6 @@ import os
 
 # -------------------------------------------------------------------
 # 1. الثوابت العامة (Constants)
-# (تم تحديث اسم "مشرف فترة" والراتب)
 # -------------------------------------------------------------------
 
 TOTAL_WORK_HOURS = 24
@@ -17,7 +16,7 @@ DEFAULT_HEAD_ASSISTANT_RATIO = 1
 DEFAULT_SALARY = {
     "رئيس": 37000,
     "مساعد رئيس": 30000,
-    "مشرف فترة": 25000, # الاسم المعدل
+    "مشرف فترة": 25000,
     "مقدم خدمة": 8500,
 }
 
@@ -48,12 +47,12 @@ for category, depts in DEPARTMENTS.items():
 TRANSLATION_MAP = {
     "Head": "رئيس",
     "Assistant_Head": "مساعد رئيس",
-    "Field_Supervisor": "مشرف فترة", # الاسم المعدل
+    "Field_Supervisor": "مشرف فترة",
     "Service_Provider": "مقدم خدمة",
 }
 
 # -------------------------------------------------------------------
-# 2. الدوال المساعدة (دالة توزيع الموظفين تم تعديلها)
+# 2. الدوال المساعدة (دالة توزيع الموظفين لم تتغير عن التعديل السابق)
 # -------------------------------------------------------------------
 
 def calculate_time_based_staff(total_events, time_per_event_min, service_days, staff_work_hours_day):
@@ -166,7 +165,7 @@ def switch_to_all():
     st.session_state['run_calculation_all'] = False
 
 # -------------------------------------------------------------------
-# 3. منطق الصفحة الفردية (Main Page Logic - لم يتغير)
+# 3. منطق الصفحة الفردية (Main Page Logic)
 # -------------------------------------------------------------------
 def main_page_logic():
     st.title("🔢 الاحتساب الفردي للإدارات")
@@ -938,6 +937,7 @@ def app():
     
     if 'reserve_factor_input' not in st.session_state:
         st.session_state['reserve_factor_input'] = 0
+    # تم إبقاء القيم الافتراضية في الـ session state لاستخدامها في دالة distribute_staff (حتى لو لم تظهر في الواجهة)
     if 'ratio_supervisor' not in st.session_state:
         st.session_state['ratio_supervisor'] = 10
     if 'ratio_assistant_head' not in st.session_state:
@@ -1003,19 +1003,7 @@ def app():
             min_value=0, max_value=50, value=st.session_state['reserve_factor_input'], step=1, key="reserve_factor_input"
         )
         
-        st.markdown("---")
-        st.subheader("معايير الهيكل القيادي (للاطلاع فقط)")
-        
-        st.info("تم تثبيت عدد المشرفين ومساعدي الرؤساء عند القيمة المدخلة في خانة التفعيل (0 أو 1)، وتم تجاهل معيار الهيكل القيادي لضمان الثبات.")
-        
-        st.number_input(
-            "معيار الهيكل القيادي (مقدم خدمة / قيادي إجمالي)",
-            min_value=1, value=st.session_state['ratio_supervisor'], step=1, key="ratio_supervisor", disabled=True
-        )
-        st.number_input(
-            "معيار عدد الرؤساء / مساعدي الرؤساء",
-            min_value=1, value=st.session_state['ratio_assistant_head'], step=1, key="ratio_assistant_head", disabled=True
-        )
+        # ⚠️ تم حذف قسم "معايير الهيكل القيادي" هنا بناءً على طلبك.
         
         st.markdown("---")
         
