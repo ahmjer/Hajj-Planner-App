@@ -636,19 +636,19 @@ def main():
              st.session_state[f'salary_{role}'] = default_salary
 
 
-    # 3. كود CSS للتنسيق (لم يتغير)
+    # 3. كود CSS للتنسيق (تم تحديث الخط)
     st.markdown("""
     <style>
-    /* 1. استيراد خط Tajawal من Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;700&display=swap');
+    /* 1. استيراد خط Cairo من Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap');
 
-    /* 2. تطبيق الخط Tajawal على جميع العناصر (معزز) */
+    /* 2. تطبيق الخط Cairo على جميع العناصر (معزز) */
     html, body, 
     [class*="st-emotion-"], 
     [data-testid*="st"], 
     h1, h2, h3, h4, h5, h6, 
     p, div, label, span, button, input, textarea, select { 
-        font-family: 'Tajawal', sans-serif !important; 
+        font-family: 'Cairo', sans-serif !important; 
         direction: rtl !important; 
     }
 
