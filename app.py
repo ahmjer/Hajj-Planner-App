@@ -76,13 +76,15 @@ def distribute_staff(total_basic_staff, ratio_supervisor, shifts, required_assis
     service_provider = total_basic_staff
     
     # 1. حساب المشرف الميداني
-    field_supervisor_fixed = SUPERVISORS_PER_SHIFT * shifts
+    # يتم احتساب مشرف ثابت لكل وردية (1 لكل وردية هو المعيار الأساسي)
+    field_supervisor_fixed = SUPERVISORS_PER_SHIFT * shifts 
     total_hierarchical_supervisors = math.ceil(service_provider / ratio_supervisor)
     total_supervisors = max(total_hierarchical_supervisors, field_supervisor_fixed)
     
-    # 2. حساب مساعد الرئيس
+    # 2. حساب مساعد الرئيس 
+    # يتم احتساب مساعد رئيس ثابت لكل وردية (حسب القيمة المدخلة required_assistant_heads)
     assistant_head_fixed = required_assistant_heads * shifts 
-    # يتم حساب مساعد رئيس هرمي لكل ratio_assistant_head مشرف
+    # ويتم حساب مساعد رئيس هرمي لكل ratio_assistant_head مشرف
     total_hierarchical_assistant_heads = math.ceil(total_supervisors / ratio_assistant_head) if total_supervisors > 0 else 0
     assistant_head = max(assistant_head_fixed, total_hierarchical_assistant_heads)
     
@@ -168,7 +170,6 @@ def remove_hospitality_center(center_id_to_remove):
         c for c in st.session_state.dynamic_hospitality_centers 
         if c['id'] != center_id_to_remove
     ]
-    # Streamlit InvalidFormCallbackError: This app has encountered an error. The original error message is redacted to prevent data leaks. Full error details have been recorded in the logs (if you're on Streamlit Cloud, click on 'Manage app' in the lower right of your app).
     # يجب إزالة إعدادات النسبة المخزنة في user_settings_all أيضاً لتجنب استخدام نسبة مركز محذوف
     ratio_key = f"Hosp_Ratio_{center_id_to_remove}"
     if 'user_settings_all' in st.session_state and ratio_key in st.session_state['user_settings_all']:
@@ -266,7 +267,8 @@ def all_departments_page():
         
         # 1. مدخلات نسبة الضيافة (يجب أن تكون داخل النموذج التالي ليتم إرسال قيمها مع الـ Submit)
         st.markdown("#### ⚙️ معيار نسبة مقدمي الخدمة لمراكز الضيافة")
-        for i, center in enumerate(st.session_state.dynamic_hospitality_centers):
+        # نستخدم نسخة لضمان عدم حدوث تغييرات أثناء التكرار
+        for i, center in enumerate(st.session_state.dynamic_hospitality_centers[:]):
             # نأخذ مدخلات المراكز المفعلة فقط
             if center['active']:
                 center_id = center['id']
@@ -422,7 +424,7 @@ def all_departments_page():
         all_results = []
         total_staff_needed = 0
 
-        # 1. عملية الحساب لمراكز الضيافة الديناميكية
+        # 1. عملية الحساب لمراكز الضيافة الديناميكية (التعديل يتركز هنا)
         for center in st.session_state.dynamic_hospitality_centers:
             # نتأكد من أن المركز مفعل قبل الحساب
             if center['active']:
@@ -431,26 +433,20 @@ def all_departments_page():
                 hajjaj_count = center['hajjaj_count']
                 
                 # استرجاع النسبة المخزنة من الواجهة
-                # (ratio هو معيار حاج/موظف، تم إدخاله داخل النموذج)
                 ratio = st.session_state['user_settings_all'].get(f"Hosp_Ratio_{center_id}", 200) 
                 
                 # تطبيق المعادلة الجديدة: عدد مقدمي الخدمة = ceil( (عدد الحجاج / 10) / معيار (حاج/موظف) )
-                
-                # 1. تحديد عدد الوحدات التي يتم خدمتها (الوحدة = 10 حجاج)
                 num_units_to_serve = hajjaj_count / 10
-                
-                # 2. حساب الاحتياج الأساسي باستخدام دالة calculate_ratio_based_staff
                 res_basic = calculate_ratio_based_staff(num_units_to_serve, ratio)
-                
-                # 3. التأكد من أن الحد الأدنى هو 1 موظف (للتوزيع الهرمي)
                 res_basic = max(1, res_basic)
                 
                 # تطبيق الهيكل الإداري
+                # المعيار الجديد: 1 مساعد رئيس لكل وردية في مراكز الضيافة
                 staff_breakdown = distribute_staff(
                     res_basic, 
                     ratio_supervisor, 
                     shifts_count, 
-                    required_assistant_heads=0, # لا يوجد مساعد رئيس إلزامي على مستوى المركز
+                    required_assistant_heads=1, # **التعديل الجديد: 1 لكل وردية**
                     ratio_assistant_head=ratio_assistant_head
                 )
                 
@@ -467,9 +463,8 @@ def all_departments_page():
                 total_staff_needed += total_needed_with_reserve
 
 
-        # 2. عملية الحساب للإدارات الثابتة الأخرى
+        # 2. عملية الحساب للإدارات الثابتة الأخرى (كما هي)
         
-        # استثناء قسم "الضيافة" من التكرار لأنه تمت معالجته بالفعل
         fixed_depts_flat = {k: v for k, v in ALL_DEPARTMENTS_FLAT.items() if v['category'] != 'الضيافة'}
         
         for dept_name, dept_info in fixed_depts_flat.items():
@@ -760,7 +755,6 @@ def main_page_logic():
             criterion = criteria_choices[dept]
             num_hajjaj_for_dept = hajjaj_data[criterion]
             actual_hajjaj_in_center = num_hajjaj_for_dept * coverage_percentages[dept]
-            # نستخدم 2 كمعامل أحداث افتراضي
             res_basic_time = calculate_time_based_staff(actual_hajjaj_in_center * 2, time_min, service_days, staff_work_hours_day)
             
             staff_breakdown_time = distribute_staff(
