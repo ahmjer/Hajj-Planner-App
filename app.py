@@ -52,7 +52,7 @@ TRANSLATION_MAP = {
 }
 
 # -------------------------------------------------------------------
-# 2. الدوال المساعدة للحساب والمنطق (تم الاحتفاظ بها)
+# 2. الدوال المساعدة للحساب والمنطق
 # -------------------------------------------------------------------
 
 def calculate_time_based_staff(total_events, time_per_event_min, service_days, staff_work_hours_day):
@@ -184,13 +184,6 @@ def remove_hospitality_center(center_id_to_remove):
     if 'user_settings_all' in st.session_state and ratio_key in st.session_state['user_settings_all']:
         del st.session_state['user_settings_all'][ratio_key]
 
-
-# -------------------------------------------------------------------
-# 3. وظائف مساعدة للتبديل بين الصفحات (تم إلغاء التبديل)
-# -------------------------------------------------------------------
-
-# تم إزالة وظائف التبديل.
-
 # -------------------------------------------------------------------
 # 4. منطق الشاشة الموحدة الجديدة (All Departments Page Logic) - هي الشاشة الرئيسية الآن
 # -------------------------------------------------------------------
@@ -215,7 +208,6 @@ def all_departments_page():
     with st.container(border=True):
         st.markdown("**مراكز الضيافة الديناميكية (إدارة الإغلاق/الفتح وتحديد الحجاج)**")
         
-        # نستخدم نسخة من القائمة لتفادي مشاكل التكرار والحالة أثناء الحذف
         centers_to_display = st.session_state.dynamic_hospitality_centers[:]
         
         for i, center in enumerate(centers_to_display):
@@ -223,8 +215,8 @@ def all_departments_page():
             
             with st.expander(f"مركز الضيافة #{center_id}: {center['name']}", expanded=True):
                 
-                # استخدام أعمدة لتنظيم المدخلات
-                col_status, col_name, col_hajjaj, col_remove = st.columns([1, 2, 2, 1])
+                # تم تعديل نسب الأعمدة هنا: 1.5 للحالة، 3 للاسم، 2.5 للحجاج، 1 للإزالة
+                col_status, col_name, col_hajjaj, col_remove = st.columns([1.5, 3, 2.5, 1])
                 
                 # 1. زر الإغلاق/الفتح (Toggle)
                 new_active = col_status.toggle(
@@ -253,12 +245,15 @@ def all_departments_page():
                 st.session_state.dynamic_hospitality_centers[i]['hajjaj_count'] = new_hajjaj_count
                 
                 # 4. زر الإزالة (خارج النموذج)
+                # استخدام margin-top لتنسيق أفضل مع الإدخالات المجاورة
+                col_remove.markdown("<div style='margin-top: 29px;'>", unsafe_allow_html=True)
                 col_remove.button(
                     "🗑️ إزالة", 
                     on_click=remove_hospitality_center, 
                     args=(center_id,), 
                     key=f"hosp_remove_{center_id}"
                 )
+                col_remove.markdown("</div>", unsafe_allow_html=True)
 
 
     st.markdown("---")
@@ -269,6 +264,7 @@ def all_departments_page():
         # 1. مدخلات نسبة الضيافة (داخل النموذج)
         st.markdown("#### ⚙️ معيار نسبة مقدمي الخدمة لمراكز الضيافة")
         with st.container(border=True): # مربع لمدخلات الضيافة
+            # لتجنب تداخل الخطوط هنا سنضع كل مدخل نسبة في سطر منفصل بدلًا من columns
             for i, center in enumerate(st.session_state.dynamic_hospitality_centers[:]):
                 if center['active']:
                     center_id = center['id']
@@ -315,7 +311,7 @@ def all_departments_page():
                     }
                 
                 with col:
-                    # إضافة مربع حول كل قسم فرعي
+                    # إضافة مربع حول كل قسم فرعي (هذا هو المستهدف لتغميق الخلفية)
                     with st.container(border=True): 
                         st.markdown(f"***_{name}_***")
                         
@@ -588,11 +584,6 @@ def all_departments_page():
 
 
 # -------------------------------------------------------------------
-# 5. الدالة الرئيسية للشاشة الافتراضية (Main Page Logic) - (تم حذفها)
-# -------------------------------------------------------------------
-
-
-# -------------------------------------------------------------------
 # 6. الواجهة الرئيسية (Streamlit UI Setup) وبداية التطبيق
 # -------------------------------------------------------------------
 
@@ -623,7 +614,16 @@ p, div, label, span, button {
     font-weight: 300 !important; /* وزن خفيف للنصوص العادية */
 }
 
-/* إعدادات تنسيقية سابقة */
+/* 4. تنسيق المربعات الداخلية للإدارات (خلفية أغمق) */
+/* تستهدف الحاويات ذات الحدود داخل الأعمدة */
+div[data-testid*="stVerticalBlock"] > div[data-testid*="stVerticalBlock"] > div[data-testid*="stVerticalBlock"] > div[data-testid*="stContainer"] {
+    /* لون رمادي فاتح أغمق قليلاً من خلفية التطبيق */
+    background-color: #f0f0f0 !important; 
+    border-radius: 5px; /* إضافة حواف مستديرة لتحسين المظهر */
+    padding: 10px;
+}
+
+/* 5. إعدادات تنسيقية سابقة */
 [data-testid="stAppViewBlockContainer"] { padding-top: 30px !important; }
 .custom-header-line { position: fixed; top: 0; left: 0; width: 100%; height: 20px; background-color: #800020; z-index: 9999; }
 section[data-testid="stSidebar"] { text-align: right; transform: none !important; left: auto; right: 0; }
@@ -634,7 +634,6 @@ section[data-testid="stSidebar"] { text-align: right; transform: none !important
 st.markdown('<div class="custom-header-line"></div>', unsafe_allow_html=True)
 
 # تهيئة حالة الجلسة (Session State)
-# لم نعد بحاجة لـ 'current_page' ولكن تركها لا يضر في هذه الحالة
 if 'run_calculation_all' not in st.session_state:
     st.session_state['run_calculation_all'] = False
 
