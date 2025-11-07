@@ -174,7 +174,7 @@ def add_hospitality_center():
     new_center = {
         'id': new_id, 
         'name': f'مركز ضيافة #{new_id}', 
-        'hajjaj_count': st.session_state['num_hajjaj_present'], # القيمة الافتراضية
+        'hajjaj_count': st.session_state.get('num_hajjaj_present', 5000), # القيمة الافتراضية
         'active': True
     }
     st.session_state.dynamic_hospitality_centers.append(new_center)
@@ -221,10 +221,11 @@ def all_departments_page():
         # نستخدم نسخة من القائمة لتفادي مشاكل التكرار والحالة أثناء الحذف
         centers_to_display = st.session_state.dynamic_hospitality_centers[:]
         
+        # تم إصلاح المسافة البادئة ومشاكل الـ Expander
         for i, center in enumerate(centers_to_display):
             center_id = center['id']
             
-            # استخدام expander لعرض تفاصيل كل مركز
+            # استخدام expander لعرض تفاصيل كل مركز (تم استخدام التسمية كعنوان فقط لإزالة النص التقني)
             with st.expander(f"مركز الضيافة #{center_id}: {center['name']}", expanded=True):
                 
                 # استخدام أعمدة لتنظيم المدخلات
@@ -297,7 +298,7 @@ def all_departments_page():
                         f"المعيار (حاج/موظف) لـ **{center['name']}**", 
                         min_value=1, 
                         value=default_ratio,
-                        key=f"hosp_ratio_{center_id}"
+                        key=f"hosp_ratio_form_{center_id}"
                     )
                     # التخزين المؤقت للإعدادات
                     user_settings[ratio_key] = new_ratio
@@ -396,7 +397,9 @@ def all_departments_page():
 
                 criterion_options = ['المتواجدين (حجم)', 'التدفق اليومي (حركة)'] 
                 crit_key = f"all_crit_{name}_{i}"
-                user_settings[name]['criterion'] = 'Present' if st.session_state[crit_key] == criterion_options[0] else 'Flow'
+                # هذا الجزء كان مبتوراً، وتم إكماله
+                criterion_value = st.session_state.get(crit_key, criterion_options[0])
+                user_settings[name]['criterion'] = 'Present' if criterion_value == criterion_options[0] else 'Flow'
 
                 if dept_type in ['Ratio', 'Time']:
                     cov_key = f"all_cov_{name}_{i}"
@@ -623,7 +626,7 @@ def main():
         st.session_state['run_calculation_all'] = False
     if 'dynamic_hospitality_centers' not in st.session_state:
         st.session_state['dynamic_hospitality_centers'] = [
-            {'id': 1, 'name': 'مركز ضيافة #1', 'hajjaj_count': 5000, 'active': True}
+            {'id': 1, 'name': 'مركز ضيافة #1', 'hajjaj_count': st.session_state.get('num_hajjaj_present', 5000), 'active': True}
         ]
     if 'next_center_id' not in st.session_state:
         st.session_state['next_center_id'] = 2
@@ -636,7 +639,7 @@ def main():
              st.session_state[f'salary_{role}'] = default_salary
 
 
-    # 3. كود CSS للتنسيق (تم تحديث الخط)
+    # 3. كود CSS للتنسيق (تم تحديث الخط إلى Cairo)
     st.markdown("""
     <style>
     /* 1. استيراد خط Cairo من Google Fonts */
@@ -729,5 +732,4 @@ def main():
 
 # نقطة الدخول الرئيسية للتطبيق
 if __name__ == '__main__':
-    # لا حاجة لدوال تبديل الصفحات بعد إلغاء الوضع الفردي
     main()
