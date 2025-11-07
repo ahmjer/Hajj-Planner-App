@@ -222,6 +222,7 @@ def all_departments_page():
     # --- إدارة المراكز الديناميكية (خارج النموذج) ---
     st.markdown("#### 🏷️ الضيافة")
     st.button("➕ إضافة مركز ضيافة جديد", on_click=add_hospitality_center, type="secondary", key="add_hosp_center_btn")
+    st.markdown("---") # فاصل واضح للقسم
     
     # نستخدم حاوية لعرض المراكز التي يمكن إدارتها خارج النموذج
     with st.container(border=True):
@@ -280,19 +281,20 @@ def all_departments_page():
         
         # 1. مدخلات نسبة الضيافة (داخل النموذج)
         st.markdown("#### ⚙️ معيار نسبة مقدمي الخدمة لمراكز الضيافة")
-        for i, center in enumerate(st.session_state.dynamic_hospitality_centers[:]):
-            if center['active']:
-                center_id = center['id']
-                ratio_key = f"Hosp_Ratio_{center_id}"
-                default_ratio = user_settings.get(ratio_key, 200) 
-                
-                new_ratio = st.number_input(
-                    f"المعيار (حاج/موظف) لـ **{center['name']}**", 
-                    min_value=1, 
-                    value=default_ratio,
-                    key=f"hosp_ratio_{center_id}"
-                )
-                user_settings[ratio_key] = new_ratio
+        with st.container(border=True): # مربع لمدخلات الضيافة
+            for i, center in enumerate(st.session_state.dynamic_hospitality_centers[:]):
+                if center['active']:
+                    center_id = center['id']
+                    ratio_key = f"Hosp_Ratio_{center_id}"
+                    default_ratio = user_settings.get(ratio_key, 200) 
+                    
+                    new_ratio = st.number_input(
+                        f"المعيار (حاج/موظف) لـ **{center['name']}**", 
+                        min_value=1, 
+                        value=default_ratio,
+                        key=f"hosp_ratio_{center_id}"
+                    )
+                    user_settings[ratio_key] = new_ratio
         
         st.markdown("---")
         
@@ -302,6 +304,8 @@ def all_departments_page():
                 continue 
 
             st.markdown(f"#### 🏷️ {category_name}")
+            st.markdown("---") # فاصل واضح بين الإدارات الرئيسية
+            
             cols = st.columns(3)
             col_index = 0
             
@@ -324,50 +328,53 @@ def all_departments_page():
                     }
                 
                 with col:
-                    st.markdown(f"***_{name}_***")
-                    
-                    # مدخل مساعد الرئيس الإلزامي
-                    asst_head_req_val = st.number_input(
-                        "مساعد رئيس إلزامي لكل وردية (0 = لا يوجد)", 
-                        min_value=0, 
-                        value=user_settings[name]['required_assistant_heads'], 
-                        step=1, 
-                        key=f"all_asst_head_req_{name}_{i}"
-                    )
-                    
-                    # --- بقية المدخلات (معيار، تغطية، نسبة/وقت/حافلات) ---
-                    criterion_options = ['المتواجدين (حجم)', 'التدفق اليومي (حركة)']
-                    criterion_choice_text = st.radio(
-                        "المعيار", 
-                        options=criterion_options,
-                        index=0 if user_settings[name]['criterion'] == 'Present' else 1,
-                        key=f"all_crit_{name}_{i}"
-                    )
-                    
-                    if dept_type in ['Ratio', 'Time']:
-                        coverage_val = st.number_input(
-                            "نسبة تغطية (%)", 
-                            min_value=0, max_value=100, 
-                            value=int(user_settings[name]['coverage'] * 100), 
+                    # إضافة مربع حول كل قسم فرعي
+                    with st.container(border=True): 
+                        st.markdown(f"***_{name}_***")
+                        
+                        # مدخل مساعد الرئيس الإلزامي
+                        asst_head_req_val = st.number_input(
+                            "مساعد رئيس إلزامي لكل وردية (0 = لا يوجد)", 
+                            min_value=0, 
+                            value=user_settings[name]['required_assistant_heads'], 
                             step=1, 
-                            key=f"all_cov_{name}_{i}"
+                            key=f"all_asst_head_req_{name}_{i}"
                         )
+                        
+                        # --- بقية المدخلات (معيار، تغطية، نسبة/وقت/حافلات) ---
+                        criterion_options = ['المتواجدين (حجم)', 'التدفق اليومي (حركة)']
+                        criterion_choice_text = st.radio(
+                            "المعيار", 
+                            options=criterion_options,
+                            index=0 if user_settings[name]['criterion'] == 'Present' else 1,
+                            key=f"all_crit_{name}_{i}"
+                        )
+                        
+                        if dept_type in ['Ratio', 'Time']:
+                            coverage_val = st.number_input(
+                                "نسبة تغطية (%)", 
+                                min_value=0, max_value=100, 
+                                value=int(user_settings[name]['coverage'] * 100), 
+                                step=1, 
+                                key=f"all_cov_{name}_{i}"
+                            )
 
-                    if dept_type == 'Ratio':
-                        ratio_val = st.number_input("المعيار (وحدة/موظف)", min_value=1, value=user_settings[name]['ratio'], key=f"all_ratio_{name}_{i}")
-                        
-                    elif dept_type == 'Time':
-                        time_val = st.number_input("المعيار (دقيقة/وحدة)", min_value=0.5, value=user_settings[name]['time'], step=0.1, key=f"all_time_{name}_{i}")
-                        multiplier_val = st.number_input("معامل أحداث الحاج (x)", min_value=1, value=user_settings[name]['events_multiplier'], key=f"all_mult_{name}_{i}")
-                        
-                    elif dept_type == 'Bus_Ratio':
-                        bus_count_val = st.number_input("عدد الحافلات المتوقع", min_value=1, value=user_settings[name]['bus_count'], key=f"all_bus_count_{name}_{i}")
-                        bus_ratio_val = st.number_input("المعيار (حافلة/موظف)", min_value=1, value=user_settings[name]['ratio'], key=f"all_bus_ratio_{name}_{i}")
+                        if dept_type == 'Ratio':
+                            ratio_val = st.number_input("المعيار (وحدة/موظف)", min_value=1, value=user_settings[name]['ratio'], key=f"all_ratio_{name}_{i}")
+                            
+                        elif dept_type == 'Time':
+                            time_val = st.number_input("المعيار (دقيقة/وحدة)", min_value=0.5, value=user_settings[name]['time'], step=0.1, key=f"all_time_{name}_{i}")
+                            multiplier_val = st.number_input("معامل أحداث الحاج (x)", min_value=1, value=user_settings[name]['events_multiplier'], key=f"all_mult_{name}_{i}")
+                            
+                        elif dept_type == 'Bus_Ratio':
+                            bus_count_val = st.number_input("عدد الحافلات المتوقع", min_value=1, value=user_settings[name]['bus_count'], key=f"all_bus_count_{name}_{i}")
+                            bus_ratio_val = st.number_input("المعيار (حافلة/موظف)", min_value=1, value=user_settings[name]['ratio'], key=f"all_bus_ratio_{name}_{i}")
         
         st.markdown("---")
         # زر الإرسال الوحيد المسموح به داخل النموذج
         calculate_button = st.form_submit_button("🔄 احتساب وعرض النتائج الموحدة", type="primary")
 
+    # ... (بقية منطق الحساب والعرض) ...
     # 2. التحديث وتخزين إعدادات المستخدم بعد الضغط على Submit
     if calculate_button:
         
@@ -627,6 +634,7 @@ def main_page_logic():
 
     with st.container(border=True):
         st.markdown(f"**معايير فروع إدارة: {department_type_choice}**")
+        st.markdown("---") # فاصل واضح داخل الإدارة الرئيسية
         
         ratios = {}
         time_based_inputs = {}
@@ -645,45 +653,48 @@ def main_page_logic():
             col_index += 1
 
             with col:
-                st.markdown(f"***_{name}_***")
-                
-                default_crit = dept.get('default_criterion', 'Present')
-                criterion_options = ['المتواجدين (1)', 'التدفق اليومي (2)']
-                
-                criterion_choice_text = col.radio(
-                    "معيار الاحتساب الرئيسي",
-                    options=criterion_options,
-                    index=0 if default_crit == 'Present' else 1,
-                    key=f"criterion_{department_type_choice}_{name}_{i}",
-                )
-                
-                criteria_choices[name] = 'Present' if criterion_choice_text == criterion_options[0] else 'Flow'
-
-                if dept_type in ['Ratio', 'Time']:
-                    default_cov = dept.get('default_coverage', 100)
-                    coverage_val = st.number_input(
-                        "نسبة تغطية (%)",
-                        min_value=0, max_value=100,
-                        value=default_cov, step=1,
-                        key=f"cov_{department_type_choice}_{name}_{i}"
-                    )
-                    coverage_percentages[name] = coverage_val / 100
-
-                if dept_type == 'Ratio':
-                    ratios[name] = st.number_input("المعيار (وحدة/موظف)", min_value=1, value=dept['default_ratio'], key=f"ratio_{department_type_choice}_{name}_{i}")
+                # إضافة مربع حول كل قسم فرعي
+                with st.container(border=True): 
+                    st.markdown(f"***_{name}_***")
                     
-                elif dept_type == 'Time':
-                    time_based_inputs[name] = st.number_input("المعيار (دقيقة/وحدة)", min_value=0.5, value=dept['default_time'], step=0.1, key=f"time_{department_type_choice}_{name}_{i}")
+                    default_crit = dept.get('default_criterion', 'Present')
+                    criterion_options = ['المتواجدين (1)', 'التدفق اليومي (2)']
+                    
+                    criterion_choice_text = col.radio(
+                        "معيار الاحتساب الرئيسي",
+                        options=criterion_options,
+                        index=0 if default_crit == 'Present' else 1,
+                        key=f"criterion_{department_type_choice}_{name}_{i}",
+                    )
+                    
+                    criteria_choices[name] = 'Present' if criterion_choice_text == criterion_options[0] else 'Flow'
 
-                elif dept_type == 'Bus_Ratio':
-                    bus_inputs = {'Bus_Count': 0, 'Ratio': 0}
-                    bus_inputs['Bus_Count'] = st.number_input("عدد الحافلات المتوقعة", min_value=1, value=20, key=f"bus_count_{name}_{i}")
-                    bus_inputs['Ratio'] = st.number_input("المعيار (حافلة/موظف)", min_value=1, value=dept['default_ratio'], key=f"bus_ratio_{name}_{i}")
-                    bus_ratio_inputs[name] = bus_inputs
+                    if dept_type in ['Ratio', 'Time']:
+                        default_cov = dept.get('default_coverage', 100)
+                        coverage_val = st.number_input(
+                            "نسبة تغطية (%)",
+                            min_value=0, max_value=100,
+                            value=default_cov, step=1,
+                            key=f"cov_{department_type_choice}_{name}_{i}"
+                        )
+                        coverage_percentages[name] = coverage_val / 100
+
+                    if dept_type == 'Ratio':
+                        ratios[name] = st.number_input("المعيار (وحدة/موظف)", min_value=1, value=dept['default_ratio'], key=f"ratio_{department_type_choice}_{name}_{i}")
+                        
+                    elif dept_type == 'Time':
+                        time_based_inputs[name] = st.number_input("المعيار (دقيقة/وحدة)", min_value=0.5, value=dept['default_time'], step=0.1, key=f"time_{department_type_choice}_{name}_{i}")
+
+                    elif dept_type == 'Bus_Ratio':
+                        bus_inputs = {'Bus_Count': 0, 'Ratio': 0}
+                        bus_inputs['Bus_Count'] = st.number_input("عدد الحافلات المتوقعة", min_value=1, value=20, key=f"bus_count_{name}_{i}")
+                        bus_inputs['Ratio'] = st.number_input("المعيار (حافلة/موظف)", min_value=1, value=dept['default_ratio'], key=f"bus_ratio_{name}_{i}")
+                        bus_ratio_inputs[name] = bus_inputs
     
     st.markdown("---")
     calculate_button = st.button(f"🔄 اضغط هنا لحساب وعرض احتياج {department_type_choice}", type="primary", key="calculate_button_main")
 
+    # ... (بقية منطق الحساب والعرض) ...
     if calculate_button:
         
         st.success("✅ تم الضغط على الزر. جاري بدء الحساب...")
