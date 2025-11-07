@@ -222,11 +222,11 @@ def main_page_logic():
     # جلب الإعدادات العامة
     hajjaj_present = st.session_state.get('num_hajjaj_present', 100000)
     hajjaj_flow = st.session_state.get('num_hajjaj_flow', 50000)
-    service_days = st.session_state.get('service_days', 30)
+    service_days = st.session_state.get('service_days', 8) # تم التحديث هنا
     staff_work_hours_day = st.session_state.get('staff_hours', 8) # استخدام القيمة الثابتة 8
-    reserve_factor = st.session_state.get('reserve_factor_input', 15) / 100
+    reserve_factor = st.session_state.get('reserve_factor_input', 0) / 100 # تم التحديث هنا
     shifts_count = st.session_state.get('shifts_count', 3) # استخدام القيمة الثابتة 3
-    ratio_supervisor = st.session_state.get('ratio_supervisor', 20)
+    ratio_supervisor = st.session_state.get('ratio_supervisor', 10) # تم التحديث هنا
     ratio_assistant_head = st.session_state.get('ratio_assistant_head', DEFAULT_HEAD_ASSISTANT_RATIO)
     
     # تحديد القسم والإدارة الفرعية
@@ -495,7 +495,7 @@ def all_departments_page():
                 # 4. زر الإزالة (خارج النموذج)
                 col_remove.button(
                     "🗑️ إزالة",
-                    on_on_click=remove_hospitality_center,
+                    on_click=remove_hospitality_center,
                     args=(center_id,),
                     key=f"hosp_remove_{center_id}"
                 )
@@ -860,16 +860,16 @@ def app():
     if 'num_hajjaj_flow' not in st.session_state:
         st.session_state['num_hajjaj_flow'] = 50000
     if 'service_days' not in st.session_state:
-        st.session_state['service_days'] = 30
+        st.session_state['service_days'] = 8 # قيمة افتراضية جديدة
         
     # **تثبيت قيم ساعات العمل والورديات**
     st.session_state['staff_hours'] = 8 # ثابت
     st.session_state['shifts_count'] = 3 # ثابت
     
     if 'reserve_factor_input' not in st.session_state:
-        st.session_state['reserve_factor_input'] = 15
+        st.session_state['reserve_factor_input'] = 0 # قيمة افتراضية جديدة
     if 'ratio_supervisor' not in st.session_state:
-        st.session_state['ratio_supervisor'] = 20
+        st.session_state['ratio_supervisor'] = 10 # قيمة افتراضية جديدة
     if 'ratio_assistant_head' not in st.session_state:
         st.session_state['ratio_assistant_head'] = DEFAULT_HEAD_ASSISTANT_RATIO
     
