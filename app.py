@@ -832,10 +832,29 @@ def main_page_logic():
 
 st.set_page_config(page_title="مخطط القوى العاملة للحج", layout="wide", page_icon=None)
 
-# كود CSS للتنسيق
+# كود CSS للتنسيق - تم تطبيق خط Tajawal الآن
 st.markdown("""
 <style>
-html, body, [class*="st-emotion-"] { direction: rtl; text-align: right; }
+/* 1. استيراد خط Tajawal من Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;700&display=swap');
+
+/* 2. تطبيق الخط الجديد Tajawal على جميع العناصر */
+/* لضمان الوزن الخفيف (300) لمعظم النصوص والوزن العادي (400) للعناوين */
+html, body, [class*="st-emotion-"], h1, h2, h3, h4, h5, h6, p, div, label { 
+    font-family: 'Tajawal', sans-serif; 
+    direction: rtl; 
+    text-align: right; 
+}
+
+h1, h2, h3, h4 {
+    font-weight: 400; /* وزن عادي للعناوين */
+}
+
+p, div, label, span {
+    font-weight: 300; /* وزن خفيف للنصوص العادية */
+}
+
+/* إعدادات تنسيقية سابقة */
 [data-testid="stAppViewBlockContainer"] { padding-top: 30px !important; }
 .custom-header-line { position: fixed; top: 0; left: 0; width: 100%; height: 20px; background-color: #800020; z-index: 9999; }
 section[data-testid="stSidebar"] { text-align: right; transform: none !important; left: auto; right: 0; }
