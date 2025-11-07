@@ -108,8 +108,8 @@ def generate_budget_data(total_staff_per_role, service_days):
         budget_data.append({
             "الرتبة الوظيفية": role,
             "العدد الإجمالي المطلوب": staff_count,
-            "متوسط مكافأة المشروع (ريال)": salary_or_reward, 
-            "التكلفة الإجمالية للمشروع (ريال)": total_cost_per_role 
+            "متوسط المكافأة  (ريال)": salary_or_reward, 
+            "التكلفة الإجمالية  (ريال)": total_cost_per_role 
         })
 
     total_project_cost = final_total_project_cost
