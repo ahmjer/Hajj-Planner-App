@@ -172,7 +172,6 @@ def to_excel_budget(total_staff_per_role, service_days):
 def add_hospitality_center():
     """تضيف مركز ضيافة جديد إلى القائمة الديناميكية."""
     new_id = st.session_state.next_center_id
-    # نستخدم القيمة المخزنة في session state كقيمة افتراضية
     default_hajjaj_count = st.session_state.get('num_hajjaj_present', 100000)
     
     new_center = {
@@ -190,18 +189,246 @@ def remove_hospitality_center(center_id_to_remove):
         c for c in st.session_state.dynamic_hospitality_centers
         if c['id'] != center_id_to_remove
     ]
-    # يجب إزالة إعدادات النسبة المخزنة في user_settings_all أيضاً لتجنب استخدام نسبة مركز محذوف
     ratio_key = f"Hosp_Ratio_{center_id_to_remove}"
     if 'user_settings_all' in st.session_state and ratio_key in st.session_state['user_settings_all']:
         del st.session_state['user_settings_all'][ratio_key]
 
 
 # -------------------------------------------------------------------
-# 3. وظائف مساعدة للتبديل بين الصفحات (تم حذفها كما طُلب)
+# 3. وظائف مساعدة للتبديل بين الصفحات
 # -------------------------------------------------------------------
 
+def switch_to_main():
+    """التبديل إلى صفحة الاحتساب الفردي."""
+    st.session_state['current_page'] = 'main'
+    st.session_state['run_calculation_main'] = False
+
+def switch_to_all():
+    """التبديل إلى صفحة الاحتساب الموحد."""
+    st.session_state['current_page'] = 'all'
+    st.session_state['run_calculation_all'] = False
+
 # -------------------------------------------------------------------
-# 4. منطق الشاشة الموحدة الجديدة (All Departments Page Logic)
+# 4. منطق الشاشة الرئيسية (الاحتساب الفردي - Main Page Logic)
+# -------------------------------------------------------------------
+
+def main_page_logic():
+    st.title("🔢 الاحتساب الفردي للإدارات")
+    st.markdown("---")
+    
+    st.warning("⚠️ يتم في هذه الشاشة اختيار إدارة واحدة فقط لتخصيص معاييرها وحساب احتياجها بشكل فردي.")
+    
+    # جلب الإعدادات العامة
+    hajjaj_present = st.session_state.get('num_hajjaj_present', 100000)
+    hajjaj_flow = st.session_state.get('num_hajjaj_flow', 50000)
+    service_days = st.session_state.get('service_days', 30)
+    staff_work_hours_day = st.session_state.get('staff_hours', 12)
+    reserve_factor = st.session_state.get('reserve_factor_input', 15) / 100
+    shifts_count = st.session_state.get('shifts_count', 2)
+    ratio_supervisor = st.session_state.get('ratio_supervisor', 20)
+    ratio_assistant_head = st.session_state.get('ratio_assistant_head', DEFAULT_HEAD_ASSISTANT_RATIO)
+    
+    # تحديد القسم والإدارة الفرعية
+    department_categories = list(DEPARTMENTS.keys())
+    
+    selected_category = st.selectbox(
+        "اختر القسم الرئيسي",
+        options=department_categories,
+        key='main_category_select'
+    )
+    
+    department_list = DEPARTMENTS.get(selected_category, [])
+    department_names = [d['name'] for d in department_list]
+    
+    if selected_category == "الضيافة":
+        st.error("الضيافة يتم احتسابها فقط ضمن نموذج الاحتساب الموحد نظراً لطبيعتها الديناميكية.")
+        return
+
+    if not department_names:
+        st.info("لا توجد إدارات فرعية معرفة في هذا القسم بعد.")
+        return
+
+    selected_department_name = st.selectbox(
+        "اختر الإدارة الفرعية للحساب",
+        options=department_names,
+        key='main_department_select'
+    )
+
+    # جلب الإعدادات الافتراضية
+    dept_info = next(d for d in department_list if d['name'] == selected_department_name)
+    dept_type = dept_info['type']
+    
+    # تهيئة إعدادات الحالة الخاصة بالصفحة الفردية
+    if 'user_settings_main' not in st.session_state:
+        st.session_state['user_settings_main'] = {}
+
+    if selected_department_name not in st.session_state['user_settings_main']:
+        st.session_state['user_settings_main'][selected_department_name] = {
+            'criterion': dept_info.get('default_criterion', 'Present'),
+            'coverage': dept_info.get('default_coverage', 100) / 100,
+            'ratio': dept_info.get('default_ratio', 1),
+            'time': dept_info.get('default_time', 1),
+            'bus_count': 20,
+            'events_multiplier': 2,
+            'required_assistant_heads': 0
+        }
+        
+    settings = st.session_state['user_settings_main'][selected_department_name]
+
+    st.markdown("---")
+    st.subheader(f"⚙️ معايير الاحتساب لـ **{selected_department_name}**")
+    
+    with st.form("main_criteria_form"):
+        col1, col2, col3 = st.columns(3)
+
+        # مساعد رئيس إلزامي
+        settings['required_assistant_heads'] = col1.number_input(
+            "مساعد رئيس إلزامي لكل وردية (0 = لا يوجد)",
+            min_value=0,
+            value=settings['required_assistant_heads'],
+            step=1,
+            key=f"main_asst_head_req_{selected_department_name}"
+        )
+
+        # المعيار
+        criterion_options = ['المتواجدين (حجم)', 'التدفق اليومي (حركة)']
+        default_index = 0 if settings['criterion'] == 'Present' else 1
+        criterion_choice_text = col2.radio(
+            "المعيار",
+            options=criterion_options,
+            index=default_index,
+            key=f"main_crit_{selected_department_name}"
+        )
+        settings['criterion'] = 'Present' if criterion_choice_text == criterion_options[0] else 'Flow'
+        
+        # التغطية
+        if dept_type in ['Ratio', 'Time']:
+            coverage_percent = int(settings['coverage'] * 100)
+            coverage_val = col3.number_input(
+                "نسبة تغطية (%)",
+                min_value=0, max_value=100,
+                value=coverage_percent,
+                step=1,
+                key=f"main_cov_{selected_department_name}"
+            )
+            settings['coverage'] = coverage_val / 100
+        
+        # النسبة أو الوقت أو الحافلات
+        if dept_type == 'Ratio':
+            settings['ratio'] = st.number_input("المعيار (وحدة/موظف)", min_value=1, value=settings['ratio'], key=f"main_ratio_{selected_department_name}")
+            
+        elif dept_type == 'Time':
+            col_t1, col_t2 = st.columns(2)
+            settings['time'] = col_t1.number_input("المعيار (دقيقة/وحدة)", min_value=0.5, value=settings['time'], step=0.1, key=f"main_time_{selected_department_name}")
+            settings['events_multiplier'] = col_t2.number_input("معامل أحداث الحاج (x)", min_value=1, value=settings['events_multiplier'], key=f"main_mult_{selected_department_name}")
+            
+        elif dept_type == 'Bus_Ratio':
+            col_b1, col_b2 = st.columns(2)
+            settings['bus_count'] = col_b1.number_input("عدد الحافلات المتوقع", min_value=1, value=settings['bus_count'], key=f"main_bus_count_{selected_department_name}")
+            settings['ratio'] = col_b2.number_input("المعيار (حافلة/موظف)", min_value=1, value=settings['ratio'], key=f"main_bus_ratio_{selected_department_name}")
+
+        calculate_button = st.form_submit_button("🔄 احتساب وعرض النتائج الفردية", type="primary")
+
+    if calculate_button:
+        # تحديث الحالة وتشغيل الحساب
+        st.session_state['user_settings_main'][selected_department_name] = settings
+        st.session_state['run_calculation_main'] = True
+        st.rerun()
+
+    # 5. الحساب والعرض
+    if st.session_state.get('run_calculation_main', False) and selected_department_name:
+        
+        st.session_state['run_calculation_main'] = False
+        st.success(f"✅ جاري حساب الاحتياج لـ **{selected_department_name}**...")
+        
+        hajjaj_data = {'Present': hajjaj_present, 'Flow': hajjaj_flow}
+        
+        res_basic = 0
+        
+        # 5.1 منطق حساب res_basic
+        if dept_type == 'Ratio':
+            ratio = settings['ratio']
+            criterion = settings['criterion']
+            coverage = settings['coverage']
+            num_hajjaj_for_dept = hajjaj_data[criterion]
+            actual_hajjaj_in_center = num_hajjaj_for_dept * coverage
+            res_basic = calculate_ratio_based_staff(actual_hajjaj_in_center, ratio)
+            
+        elif dept_type == 'Bus_Ratio':
+            num_units = settings['bus_count']
+            bus_ratio = settings['ratio']
+            res_basic = calculate_ratio_based_staff(num_units, bus_ratio)
+            
+        elif dept_type == 'Time':
+            time_min = settings['time']
+            criterion = settings['criterion']
+            coverage = settings['coverage']
+            multiplier = settings['events_multiplier']
+            num_hajjaj_for_dept = hajjaj_data[criterion]
+            actual_hajjaj_in_center = num_hajjaj_for_dept * coverage
+            res_basic = calculate_time_based_staff(actual_hajjaj_in_center * multiplier, time_min, service_days, staff_work_hours_day)
+        
+        # 5.2 تطبيق الهيكل الإداري
+        required_assistant_heads = settings['required_assistant_heads']
+        
+        staff_breakdown = distribute_staff(
+            res_basic,
+            ratio_supervisor,
+            shifts_count,
+            required_assistant_heads=required_assistant_heads,
+            ratio_assistant_head=ratio_assistant_head
+        )
+        
+        total_staff_in_hierarchy = sum(staff_breakdown.values())
+        total_needed_with_reserve = math.ceil(total_staff_in_hierarchy * (1 + reserve_factor))
+
+        translated_breakdown = {TRANSLATION_MAP.get(k, k): v for k, v in staff_breakdown.items()}
+        
+        # 5.3 عرض النتائج
+        st.subheader("2. نتائج الاحتياج الفردي")
+        
+        results_df = pd.DataFrame([translated_breakdown])
+        results_df = results_df.transpose().reset_index()
+        results_df.columns = ["الرتبة الوظيفية", "العدد المطلوب"]
+        results_df = results_df.set_index("الرتبة الوظيفية")
+
+        st.dataframe(results_df, use_container_width=True)
+
+        st.metric(
+            label=f"**المجموع الكلي للإدارة ({selected_department_name}) (مع الاحتياط {int(reserve_factor*100)}%)**",
+            value=f"{total_needed_with_reserve} موظف"
+        )
+        st.info(f"مقدم الخدمة الأساسي (بدون قيادة): **{res_basic}**")
+
+        # تجهيز بيانات الميزانية للتصدير (لإدارة واحدة فقط)
+        budget_data_main = {
+            TRANSLATION_MAP[k]: v for k, v in staff_breakdown.items()
+        }
+        
+        col_download, col_budget_btn = st.columns(2)
+        
+        with col_download:
+            excel_data = to_excel(results_df)
+            st.download_button(
+                label="📥 تصدير الجدول الفردي إلى ملف Excel",
+                data=excel_data,
+                file_name=f'تخطيط_القوى_العاملة_{selected_department_name}.xlsx',
+                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                type="secondary"
+            )
+        
+        with col_budget_btn:
+             st.download_button(
+                label="💰 **تصدير ميزانية الرواتب (Excel)**",
+                data=to_excel_budget(budget_data_main, service_days),
+                file_name=f'ميزانية_الرواتب_{selected_department_name}.xlsx',
+                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                type="primary",
+                key="download_budget_excel_main"
+            )
+
+# -------------------------------------------------------------------
+# 5. منطق الشاشة الموحدة (All Departments Page Logic) - تم دمجها سابقاً
 # -------------------------------------------------------------------
 
 def all_departments_page():
@@ -228,7 +455,7 @@ def all_departments_page():
         centers_to_display = st.session_state.dynamic_hospitality_centers[:]
         
         for i, center in enumerate(centers_to_display):
-            if i >= len(st.session_state.dynamic_hospitality_centers): # فحص إضافي
+            if i >= len(st.session_state.dynamic_hospitality_centers):
                     continue
                     
             center_id = center['id']
@@ -258,7 +485,6 @@ def all_departments_page():
                 new_hajjaj_count = col_hajjaj.number_input(
                     "عدد الحجاج/الزوار (تقديري)",
                     min_value=1,
-                    # نستخدم القيمة المحفوظة في القائمة الديناميكية
                     value=center.get('hajjaj_count', st.session_state.get('num_hajjaj_present', 100000)),
                     step=100,
                     key=f"hosp_hajjaj_{center_id}"
@@ -315,7 +541,7 @@ def all_departments_page():
                 col = cols[col_index % 3]
                 col_index += 1
                 
-                # تهيئة الإعدادات الافتراضية للقسم إذا لم تكن موجودة
+                # تهيئة الإعدادات الافتراضية
                 if name not in user_settings:
                     user_settings[name] = {
                         'criterion': dept.get('default_criterion', 'Present'),
@@ -332,7 +558,7 @@ def all_departments_page():
                     st.markdown(f"""
                         <style>
                             .darker-container {{
-                                background-color: #f0f2f6; /* لون خلفية أغمق قليلاً من الأبيض */
+                                background-color: #f0f2f6;
                                 padding: 10px;
                                 border-radius: 5px;
                                 border: 1px solid rgba(49, 51, 63, 0.2);
@@ -389,15 +615,13 @@ def all_departments_page():
     # 2. التحديث وتخزين إعدادات المستخدم بعد الضغط على Submit
     if calculate_button:
         
-        # منطق تحديث الإعدادات من st.session_state إلى user_settings (التي هي جزء من session_state)
         for category_name, depts in DEPARTMENTS.items():
             if category_name == "الضيافة": continue
 
             for i, dept in enumerate(depts):
                 name = dept['name']
                 dept_type = dept['type']
-                
-                # تحديث إعدادات القسم بناءً على الحالة الحالية بعد ضغط زر الإرسال
+
                 asst_head_key = f"all_asst_head_req_{name}_{i}"
                 user_settings[name]['required_assistant_heads'] = st.session_state[asst_head_key]
 
@@ -436,7 +660,7 @@ def all_departments_page():
         
         st.success("✅ جاري بدء الحساب الموحد بناءً على معاييرك المخصصة...")
         
-        # جلب المدخلات العامة (يتم جلبها مباشرة من الحالة بعد التعديل)
+        # جلب المدخلات العامة
         num_hajjaj_present = st.session_state['num_hajjaj_present']
         num_hajjaj_flow = st.session_state['num_hajjaj_flow']
         service_days = st.session_state['service_days']
@@ -609,25 +833,27 @@ def all_departments_page():
 
 
 # -------------------------------------------------------------------
-# 5. الدالة الرئيسية للتطبيق (Main App Function) - تم التصحيح
+# 6. الدالة الرئيسية للتطبيق (Main App Function) - تم استعادة منطق التبديل
 # -------------------------------------------------------------------
 
 def app():
     st.set_page_config(
-        page_title="تخطيط القوى العاملة الموحد",
+        page_title="تخطيط القوى العاملة",
         layout="wide",
         initial_sidebar_state="expanded"
     )
     
     st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
     
-    # تهيئة الحالة الافتراضية (Session State) - تم تصحيح طريقة التعامل معها
+    # 1. تهيئة الحالة الافتراضية (Session State) لكافة المتغيرات، بما في ذلك الصفحة الحالية
+    if 'current_page' not in st.session_state:
+        st.session_state['current_page'] = 'all' # ابدأ بالشاشة الموحدة
     if 'next_center_id' not in st.session_state:
         st.session_state['next_center_id'] = 1
     if 'dynamic_hospitality_centers' not in st.session_state:
         st.session_state['dynamic_hospitality_centers'] = []
-
-    # *** تهيئة القيم الافتراضية للمدخلات في الشريط الجانبي (الحل لخطأ Streamlit) ***
+    
+    # تهيئة جميع قيم المدخلات في الشريط الجانبي (تجنباً لأخطاء Streamlit)
     if 'num_hajjaj_present' not in st.session_state:
         st.session_state['num_hajjaj_present'] = 100000
     if 'num_hajjaj_flow' not in st.session_state:
@@ -645,39 +871,46 @@ def app():
     if 'ratio_assistant_head' not in st.session_state:
         st.session_state['ratio_assistant_head'] = DEFAULT_HEAD_ASSISTANT_RATIO
     
-    # تهيئة قيم الرواتب الافتراضية إذا لم تكن موجودة
     for role, default_salary in DEFAULT_SALARY.items():
         if f'salary_{role}' not in st.session_state:
             st.session_state[f'salary_{role}'] = default_salary
 
-
-    # مدخلات الشريط الجانبي (العامة)
+    # 2. مدخلات الشريط الجانبي (العامة)
     with st.sidebar:
         st.title("⚙️ الإعدادات العامة")
         
+        # أزرار التبديل بين الصفحات
+        st.subheader("نافذة العرض")
+        col_main, col_all = st.columns(2)
+        
+        col_main.button(
+            "حساب فردي",
+            on_click=switch_to_main,
+            disabled=st.session_state['current_page'] == 'main',
+            use_container_width=True
+        )
+        col_all.button(
+            "حساب موحد",
+            on_click=switch_to_all,
+            disabled=st.session_state['current_page'] == 'all',
+            type="primary" if st.session_state['current_page'] == 'all' else "secondary",
+            use_container_width=True
+        )
+        
+        st.markdown("---")
         st.subheader("بيانات المدخلات الأساسية")
         
-        # *** التصحيح: إزالة التعيين المباشر لـ st.session_state = st.number_input(...) ***
         st.number_input(
             "إجمالي الحجاج/الزوار (المتواجدين)",
-            min_value=1, 
-            value=st.session_state['num_hajjaj_present'], 
-            step=1000, 
-            key="num_hajjaj_present"
+            min_value=1, value=st.session_state['num_hajjaj_present'], step=1000, key="num_hajjaj_present"
         )
         st.number_input(
             "إجمالي الحجاج/الزوار (التدفق اليومي)",
-            min_value=1, 
-            value=st.session_state['num_hajjaj_flow'], 
-            step=1000, 
-            key="num_hajjaj_flow"
+            min_value=1, value=st.session_state['num_hajjaj_flow'], step=1000, key="num_hajjaj_flow"
         )
         st.number_input(
             "مدة الخدمة (يوم)",
-            min_value=1, 
-            value=st.session_state['service_days'], 
-            step=1, 
-            key="service_days"
+            min_value=1, value=st.session_state['service_days'], step=1, key="service_days"
         )
 
         st.markdown("---")
@@ -685,25 +918,16 @@ def app():
         
         st.number_input(
             "ساعات عمل الموظف اليومية",
-            min_value=1, max_value=TOTAL_WORK_HOURS, 
-            value=st.session_state['staff_hours'], 
-            step=1, 
-            key="staff_hours"
+            min_value=1, max_value=TOTAL_WORK_HOURS, value=st.session_state['staff_hours'], step=1, key="staff_hours"
         )
         st.number_input(
             "عدد الورديات اليومية المطلوبة",
-            min_value=1, max_value=24, 
-            value=st.session_state['shifts_count'], 
-            step=1, 
-            key="shifts_count"
+            min_value=1, max_value=24, value=st.session_state['shifts_count'], step=1, key="shifts_count"
         )
         
         st.slider(
             "نسبة الاحتياط الإجمالية (%)",
-            min_value=0, max_value=50, 
-            value=st.session_state['reserve_factor_input'], 
-            step=1, 
-            key="reserve_factor_input"
+            min_value=0, max_value=50, value=st.session_state['reserve_factor_input'], step=1, key="reserve_factor_input"
         )
         
         st.markdown("---")
@@ -711,22 +935,15 @@ def app():
         
         st.number_input(
             "معيار الهيكل القيادي (مقدم خدمة / قيادي إجمالي)",
-            min_value=1, 
-            value=st.session_state['ratio_supervisor'], 
-            step=1, 
-            key="ratio_supervisor"
+            min_value=1, value=st.session_state['ratio_supervisor'], step=1, key="ratio_supervisor"
         )
         st.number_input(
             "معيار عدد الرؤساء / مساعدي الرؤساء",
-            min_value=1, 
-            value=st.session_state['ratio_assistant_head'], 
-            step=1, 
-            key="ratio_assistant_head"
+            min_value=1, value=st.session_state['ratio_assistant_head'], step=1, key="ratio_assistant_head"
         )
         
         st.markdown("---")
         
-        # تعديل الرواتب
         st.subheader("💰 تعديل الرواتب الشهرية")
         
         for role, default_salary in DEFAULT_SALARY.items():
@@ -734,13 +951,16 @@ def app():
             st.number_input(
                 f"راتب **{role}** (ريال)",
                 min_value=1,
-                value=st.session_state[key], # استخدام القيمة المهيأة في الحالة
+                value=st.session_state[key],
                 step=100,
                 key=key
             )
         
-    # عرض الصفحة الموحدة مباشرة
-    all_departments_page()
+    # 3. عرض الصفحة المختارة
+    if st.session_state['current_page'] == 'main':
+        main_page_logic()
+    elif st.session_state['current_page'] == 'all':
+        all_departments_page()
 
 if __name__ == "__main__":
     app()
