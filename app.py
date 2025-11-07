@@ -902,9 +902,63 @@ def setup_initial_state():
         if f'salary_{role}' not in st.session_state:
             st.session_state[f'salary_{role}'] = default_salary
 
+def inject_rtl_css():
+    """حقن كود CSS لتعيين اتجاه النص من اليمين لليسار (RTL)."""
+    # هذا الكود يحاول عكس الاتجاه العام للعناصر الرئيسية
+    # ويضبط محاذاة النص الافتراضية.
+    st.markdown("""
+        <style>
+        html {
+            direction: rtl;
+        }
+        
+        /* ضبط محاذاة النص للعناصر الرئيسية في التطبيق */
+        .stApp {
+            text-align: right;
+        }
+        
+        /* ضبط محاذاة محتوى العمود الرئيسي */
+        .stApp > header, .stApp > div {
+            direction: rtl;
+        }
+        
+        /* ضبط المحاذاة داخل الشريط الجانبي */
+        [data-testid="stSidebarContent"] {
+            text-align: right;
+        }
+        
+        /* محاذاة الإدخالات وعناصر التحكم */
+        label, .st-ck, .st-bg, .st-cd {
+            float: right;
+            margin-right: 0;
+            margin-left: auto;
+        }
+        
+        /* محاذاة الأزرار والـ metrics */
+        .stButton, .stMetric, .stDownloadButton {
+            text-align: right;
+        }
+        
+        /* محاذاة عناوين الأقسام الفرعية */
+        .darker-container {
+            text-align: right;
+        }
+        
+        /* لجعل الجداول تعرض النص بشكل صحيح (قد لا يعمل على جميع الأجهزة/الإصدارات) */
+        .dataframe {
+            direction: rtl;
+        }
+        
+        </style>
+        """, unsafe_allow_html=True)
+
 def sidebar_config():
     """إعداد القائمة الجانبية لإدخال البيانات العامة."""
     
+    # إضافة الشعار في أعلى الشريط الجانبي
+    # يجب أن يكون ملف logo.png موجوداً في نفس مجلد ملف app.py
+    st.logo("logo.png", size="large")
+
     st.sidebar.header("⚙️ الإعدادات العامة للمشروع")
     
     # قسم المدخلات الرئيسية
@@ -940,7 +994,10 @@ def sidebar_config():
 
 def main():
     """الدالة الرئيسية لتشغيل التطبيق."""
-    st.set_page_config(layout="wide", page_title="تخطيط القوى العاملة")
+    # يجب أن تكون st.set_page_config هي أول أمر Streamlit يتم تنفيذه
+    st.set_page_config(layout="wide", page_title="تخطيط القوى العاملة", page_icon=":chart_with_upwards_trend:")
+    
+    inject_rtl_css() # حقن كود RTL CSS بعد إعداد الصفحة
     setup_initial_state()
     sidebar_config()
 
