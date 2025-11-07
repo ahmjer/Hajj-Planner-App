@@ -166,7 +166,7 @@ def switch_to_all():
     st.session_state['run_calculation_all'] = False
 
 # -------------------------------------------------------------------
-# 3. منطق الصفحة الفردية (Main Page Logic - تم تحديثه ليتناسب مع التعديلات)
+# 3. منطق الصفحة الفردية (Main Page Logic - تم تحديثه)
 # -------------------------------------------------------------------
 def main_page_logic():
     st.title("🔢 الاحتساب الفردي للإدارات")
@@ -332,6 +332,12 @@ def main_page_logic():
 
         translated_breakdown = {TRANSLATION_MAP.get(k, k): v for k, v in staff_breakdown.items()}
         
+        # **حساب الميزانية للإدارة الفردية**
+        total_project_cost_main = 0
+        for role, staff_count in translated_breakdown.items():
+            salary_or_reward = st.session_state.get(f'salary_{role}', DEFAULT_SALARY.get(role, 0))
+            total_project_cost_main += staff_count * salary_or_reward
+        
         st.subheader("2. نتائج الاحتياج الفردي")
         
         results_df = pd.DataFrame([translated_breakdown])
@@ -345,11 +351,15 @@ def main_page_logic():
             label=f"**المجموع الكلي للإدارة ({selected_department_name}) (مع الاحتياط {int(reserve_factor*100)}%)**",
             value=f"{total_needed_with_reserve} موظف"
         )
+        # **عرض الميزانية**
+        st.metric(
+            label="**قيمة الميزانية التقديرية (ريال)**",
+            value=f"{total_project_cost_main:,} ريال"
+        )
+        
         st.info(f"مقدم الخدمة الأساسي (بدون قيادة): **{res_basic}**")
 
-        budget_data_main = {
-            TRANSLATION_MAP[k]: v for k, v in staff_breakdown.items()
-        }
+        budget_data_main = translated_breakdown
         
         col_download, col_budget_btn = st.columns(2)
         
@@ -374,7 +384,7 @@ def main_page_logic():
             )
 
 # -------------------------------------------------------------------
-# 4. منطق الشاشة الموحدة (All Departments Page Logic - تم تحديثه ليتناسب مع التعديلات)
+# 4. منطق الشاشة الموحدة (All Departments Page Logic - تم تحديثه)
 # -------------------------------------------------------------------
 
 def all_departments_page():
@@ -680,12 +690,19 @@ def all_departments_page():
         staff_work_hours_day = st.session_state.get('staff_hours', 8)
         reserve_factor = st.session_state['reserve_factor_input'] / 100
         shifts_count = st.session_state.get('shifts_count', 3)
-        # تم حذف ratio_supervisor و ratio_assistant_head
         
         hajjaj_data = {'Present': num_hajjaj_present, 'Flow': num_hajjaj_flow}
 
         all_results = []
         total_staff_needed = 0
+        
+        # مجموع إجمالي الموظفين لكل دور (لحساب الميزانية)
+        total_staff_per_role = {
+            "رئيس": 0,
+            "مساعد رئيس": 0,
+            "مشرف فترة": 0,
+            "مقدم خدمة": 0,
+        }
 
         # 1. عملية الحساب لمراكز الضيافة الديناميكية
         for center in st.session_state.dynamic_hospitality_centers:
@@ -695,7 +712,7 @@ def all_departments_page():
                 hajjaj_count = center['hajjaj_count']
                 ratio = st.session_state['user_settings_all'].get(f"Hosp_Ratio_{center_id}", 200)
                 
-                num_units_to_serve = hajjaj_count / 8
+                num_units_to_serve = hajjaj_count / 10
                 res_basic = calculate_ratio_based_staff(num_units_to_serve, ratio)
                 res_basic = max(1, res_basic)
                 
@@ -711,6 +728,10 @@ def all_departments_page():
 
                 translated_breakdown = {TRANSLATION_MAP.get(k, k): v for k, v in staff_breakdown.items()}
                 
+                # تجميع إجمالي الموظفين لكل دور (للميزانية)
+                for role, count in translated_breakdown.items():
+                    total_staff_per_role[role] += count
+
                 result_entry = {"الإدارة": dept_name, "القسم": "الضيافة"}
                 result_entry.update(translated_breakdown)
                 result_entry["المجموع الإجمالي (بالاحتياط)"] = total_needed_with_reserve
@@ -766,6 +787,10 @@ def all_departments_page():
 
             translated_breakdown = {TRANSLATION_MAP.get(k, k): v for k, v in staff_breakdown.items()}
             
+            # تجميع إجمالي الموظفين لكل دور (للميزانية)
+            for role, count in translated_breakdown.items():
+                total_staff_per_role[role] += count
+                
             result_entry = {"الإدارة": dept_name, "القسم": dept_info['category']}
             result_entry.update(translated_breakdown)
             result_entry["المجموع الإجمالي (بالاحتياط)"] = total_needed_with_reserve
@@ -789,14 +814,18 @@ def all_departments_page():
         
         st.dataframe(df, use_container_width=True)
         
-        # 5. تخزين الإجماليات
-        total_staff_per_role = {}
-        for role_arabic in [TRANSLATION_MAP[k] for k in TRANSLATION_MAP.keys()]:
-            if role_arabic in df.columns:
-                total_staff_per_role[role_arabic] = df[role_arabic].sum()
+        # 5. تخزين الإجماليات وحساب الميزانية الإجمالية
         
+        # **NEW: Calculate and store the total budget**
+        total_project_cost = 0
+        for role, staff_count in total_staff_per_role.items():
+            # Use the translated role name to fetch the salary
+            salary_or_reward = st.session_state.get(f'salary_{role}', DEFAULT_SALARY.get(role, 0))
+            total_project_cost += staff_count * salary_or_reward
+            
         st.session_state['total_staff_per_role'] = total_staff_per_role
-        st.session_state['total_budget_needed'] = total_staff_needed
+        st.session_state['total_budget_needed'] = total_staff_needed # هذا هو العدد الإجمالي مع الاحتياط
+        st.session_state['total_budget_value'] = total_project_cost # هذه هي قيمة الميزانية
         
         # 6. التصدير
         service_days = st.session_state['service_days']
@@ -831,6 +860,12 @@ def all_departments_page():
             st.metric(
                 label=f"**المجموع الكلي للقوى العاملة المطلوبة في جميع الأقسام (مع الاحتياط)**",
                 value=f"{total_staff_needed} موظف",
+            )
+            # **NEW: Display the budget metric**
+            st.metric(
+                label="**قيمة الميزانية التقديرية الإجمالية (ريال)**",
+                # تنسيق الرقم بفاصلة للآلاف
+                value=f"{total_project_cost:,} ريال", 
             )
         with col2:
             st.info(f"نسبة الاحتياط الإجمالية المطبقة: {st.session_state['reserve_factor_input']}%")
