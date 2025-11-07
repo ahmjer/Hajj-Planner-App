@@ -1087,13 +1087,13 @@ def app():
             flex-direction: row-reverse;
         }
 
-        /* 4. تخصيص الخلفية للحاويات ذات الإطار */
+        /* 4. تخصيص الخلفية للحاويات ذات الإطار (تم التعديل ليصبح أغمق قليلاً) */
         .stContainer[data-st-container-border="true"] {
-            background-color: #f7f7f7; /* رمادي فاتح جداً لتمييز الإطار */
+            background-color: #eeeeee; /* رمادي أغمق قليلاً */
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 25px;
-            border: 1px solid #ddd; /* إضافة حد خفيف وواضح */
+            border: 1px solid #ccc; /* إطار أغمق قليلاً */
         }
         
         /* تقليل المسافة العلوية لتقليل الفراغات */
