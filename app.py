@@ -704,7 +704,7 @@ def all_departments_page():
                 hajjaj_count = center['hajjaj_count']
                 ratio = st.session_state['user_settings_all'].get(f"Hosp_Ratio_{center_id}", 200)
                 
-                num_units_to_serve = hajjaj_count / 10
+                num_units_to_serve = hajjaj_count / 8
                 res_basic = calculate_ratio_based_staff(num_units_to_serve, ratio)
                 res_basic = max(1, res_basic)
                 
