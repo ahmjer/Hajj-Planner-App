@@ -9,14 +9,14 @@ import os
 # -------------------------------------------------------------------
 
 TOTAL_WORK_HOURS = 24
-SUPERVISORS_PER_SHIFT = 1
+SUPERVISORS_PER_SHIFT = 1 # مشرف فترة ثابت 1 لكل وردية
 ASSISTANT_HEADS_PER_SHIFT = 1
 DEFAULT_HEAD_ASSISTANT_RATIO = 1
 
 DEFAULT_SALARY = {
     "رئيس": 37000,
     "مساعد رئيس": 30000,
-    "مشرف ميداني": 25000,
+    "مشرف فترة": 25000, # تم التعديل
     "مقدم خدمة": 8500,
 }
 
@@ -33,7 +33,7 @@ DEPARTMENTS = {
         {"name": "متابعة ميدانية", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
         {"name": "الخدمات الميدانية والاسكان ", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
         {"name": "الزيارة وإرشاد التأهيين ", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
-        {"name": " الدعم والضيافة", "type": "Time", "default_time": 10.0, "default_coverage": 100, "default_criterion": 'Present'},
+        {"name": " الدعم والضيافة", "type": "Time", "default_time": 5.0, "default_coverage": 100, "default_criterion": 'Present'},
         {"name": "الرعاية صحية", "type": "Ratio", "default_ratio": 1500, "default_coverage": 100, "default_criterion": 'Present'},
     ]
 }
@@ -47,7 +47,7 @@ for category, depts in DEPARTMENTS.items():
 TRANSLATION_MAP = {
     "Head": "رئيس",
     "Assistant_Head": "مساعد رئيس",
-    "Field_Supervisor": "مشرف ميداني",
+    "Field_Supervisor": "مشرف فترة", # تم التعديل
     "Service_Provider": "مقدم خدمة",
 }
 
@@ -66,21 +66,20 @@ def calculate_ratio_based_staff(num_units, ratio):
     basic_staff = math.ceil(num_units / ratio)
     return basic_staff
 
-def distribute_staff(total_basic_staff, ratio_supervisor, shifts, required_assistant_heads=0, ratio_assistant_head=DEFAULT_HEAD_ASSISTANT_RATIO):
+# تم تعديل الدالة لحذف معايير النسبة وإلغاء التوسع في عدد المشرفين
+def distribute_staff(total_basic_staff, shifts, required_assistant_heads=0): 
     service_provider = total_basic_staff
-    head = 1
-    field_supervisor_fixed = SUPERVISORS_PER_SHIFT * shifts
-    assistant_head_fixed = required_assistant_heads * shifts
-    total_leadership_min_hierarchical = math.ceil(service_provider / ratio_supervisor)
-    leadership_fixed_sum = head + assistant_head_fixed + field_supervisor_fixed
-
-    if total_leadership_min_hierarchical > leadership_fixed_sum:
-        extra_leadership_needed = total_leadership_min_hierarchical - leadership_fixed_sum
-        total_supervisors = field_supervisor_fixed + extra_leadership_needed
-        assistant_head = assistant_head_fixed
+    
+    if total_basic_staff == 0:
+        head = 0
+        total_supervisors = 0
+        assistant_head = 0
     else:
-        total_supervisors = field_supervisor_fixed
-        assistant_head = assistant_head_fixed
+        head = 1 # رئيس واحد لكل قسم
+        # مشرف فترة ثابت: 1 لكل وردية (SUPERVISORS_PER_SHIFT * shifts)
+        total_supervisors = SUPERVISORS_PER_SHIFT * shifts 
+        # مساعد رئيس بناءً على الإلزام لكل وردية
+        assistant_head = required_assistant_heads * shifts
         
     return {
         "Head": head,
@@ -98,33 +97,29 @@ def to_excel(df):
 
 def generate_budget_data(total_staff_per_role, service_days):
     budget_data = []
-    # تم تغيير اسم المتغير ليعكس التكلفة الإجمالية للمشروع
     final_total_project_cost = 0 
     
     for role, staff_count in total_staff_per_role.items():
-        # الراتب/المكافأة يمثل الآن التكلفة الإجمالية للموظف طوال فترة المشروع
+        # التأكد من استخدام المفتاح الصحيح لاستعادة الراتب/المكافأة
         salary_or_reward = st.session_state.get(f'salary_{role}', DEFAULT_SALARY.get(role, 0))
-        # التكلفة الإجمالية لهذا الدور للمشروع
         total_cost_per_role = staff_count * salary_or_reward
         final_total_project_cost += total_cost_per_role
         
         budget_data.append({
             "الرتبة الوظيفية": role,
             "العدد الإجمالي المطلوب": staff_count,
-            "متوسط مكافأة المشروع (ريال)": salary_or_reward, # تم تغيير التسمية
-            "التكلفة الإجمالية للمشروع (ريال)": total_cost_per_role # تم تغيير التسمية
+            "متوسط مكافأة المشروع (ريال)": salary_or_reward, 
+            "التكلفة الإجمالية للمشروع (ريال)": total_cost_per_role 
         })
 
-    # إجمالي تكلفة المشروع هو مجموع التكاليف الإجمالية للأدوار (إزالة منطق القسمة والضرب بمدة الخدمة)
     total_project_cost = final_total_project_cost
     
     df_budget = pd.DataFrame(budget_data)
     
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df_budget.to_excel(writer, index=False, sheet_name='تفاصيل_مكافآت_المشروع') # تم تحديث اسم الورقة
+        df_budget.to_excel(writer, index=False, sheet_name='تفاصيل_مكافآت_المشروع') 
         summary_data = {
-            # تم تبسيط ملخص الميزانية
             "البيان": ["إجمالي تكلفة المكافآت (ريال)", "إجمالي الموظفين (بدون احتياط)"],
             "القيمة": [total_project_cost, sum(total_staff_per_role.values())]
         }
@@ -171,7 +166,7 @@ def switch_to_all():
     st.session_state['run_calculation_all'] = False
 
 # -------------------------------------------------------------------
-# 3. منطق الصفحة الفردية (Main Page Logic - لم يتغير)
+# 3. منطق الصفحة الفردية (Main Page Logic - تم تحديثه ليتناسب مع التعديلات)
 # -------------------------------------------------------------------
 def main_page_logic():
     st.title("🔢 الاحتساب الفردي للإدارات")
@@ -179,15 +174,13 @@ def main_page_logic():
     
     st.warning("⚠️ يتم في هذه الشاشة اختيار إدارة واحدة فقط لتخصيص معاييرها وحساب احتياجها بشكل فردي.")
     
-    # جلب الإعدادات العامة
-    hajjaj_present = st.session_state.get('num_hajjaj_present', 100000)
-    hajjaj_flow = st.session_state.get('num_hajjaj_flow', 50000)
+    # جلب الإعدادات العامة (تم حذف ratio_supervisor و ratio_assistant_head)
+    hajjaj_present = st.session_state.get('num_hajjaj_present', 15000)
+    hajjaj_flow = st.session_state.get('num_hajjaj_flow', 6000)
     service_days = st.session_state.get('service_days', 8)
     staff_work_hours_day = st.session_state.get('staff_hours', 8)
     reserve_factor = st.session_state.get('reserve_factor_input', 0) / 100
     shifts_count = st.session_state.get('shifts_count', 3)
-    ratio_supervisor = st.session_state.get('ratio_supervisor', 10)
-    ratio_assistant_head = st.session_state.get('ratio_assistant_head', DEFAULT_HEAD_ASSISTANT_RATIO)
     
     # تحديد القسم والإدارة الفرعية
     department_categories = list(DEPARTMENTS.keys())
@@ -327,12 +320,11 @@ def main_page_logic():
         
         required_assistant_heads = settings['required_assistant_heads']
         
+        # استدعاء دالة التوزيع الجديدة
         staff_breakdown = distribute_staff(
             res_basic,
-            ratio_supervisor,
             shifts_count,
-            required_assistant_heads=required_assistant_heads,
-            ratio_assistant_head=ratio_assistant_head
+            required_assistant_heads=required_assistant_heads
         )
         
         total_staff_in_hierarchy = sum(staff_breakdown.values())
@@ -382,7 +374,7 @@ def main_page_logic():
             )
 
 # -------------------------------------------------------------------
-# 4. منطق الشاشة الموحدة (All Departments Page Logic)
+# 4. منطق الشاشة الموحدة (All Departments Page Logic - تم تحديثه ليتناسب مع التعديلات)
 # -------------------------------------------------------------------
 
 def all_departments_page():
@@ -443,7 +435,7 @@ def all_departments_page():
                         new_hajjaj_count = col_hajjaj.number_input(
                             "عدد الحجاج/الزوار (تقديري)",
                             min_value=1,
-                            value=center.get('hajjaj_count', st.session_state.get('num_hajjaj_present', 100000)),
+                            value=center.get('hajjaj_count', st.session_state.get('num_hajjaj_present', 15000)),
                             step=100,
                             key=f"hosp_hajjaj_{center_id}"
                         )
@@ -626,7 +618,7 @@ def all_departments_page():
         st.markdown("---")
         calculate_button = st.form_submit_button("🔄 احتساب وعرض النتائج الموحدة", type="primary")
 
-    # (منطق الحساب والعرض لم يتغير)
+    # (منطق الحساب والعرض)
     if calculate_button:
         
         for category_name, depts in DEPARTMENTS.items():
@@ -688,9 +680,8 @@ def all_departments_page():
         staff_work_hours_day = st.session_state.get('staff_hours', 8)
         reserve_factor = st.session_state['reserve_factor_input'] / 100
         shifts_count = st.session_state.get('shifts_count', 3)
-        ratio_supervisor = st.session_state['ratio_supervisor']
-        ratio_assistant_head = st.session_state['ratio_assistant_head']
-
+        # تم حذف ratio_supervisor و ratio_assistant_head
+        
         hajjaj_data = {'Present': num_hajjaj_present, 'Flow': num_hajjaj_flow}
 
         all_results = []
@@ -704,16 +695,15 @@ def all_departments_page():
                 hajjaj_count = center['hajjaj_count']
                 ratio = st.session_state['user_settings_all'].get(f"Hosp_Ratio_{center_id}", 200)
                 
-                num_units_to_serve = hajjaj_count / 8
+                num_units_to_serve = hajjaj_count / 10
                 res_basic = calculate_ratio_based_staff(num_units_to_serve, ratio)
                 res_basic = max(1, res_basic)
                 
+                # استدعاء دالة التوزيع الجديدة
                 staff_breakdown = distribute_staff(
                     res_basic,
-                    ratio_supervisor,
                     shifts_count,
                     required_assistant_heads=1,
-                    ratio_assistant_head=ratio_assistant_head
                 )
                 
                 total_staff_in_hierarchy = sum(staff_breakdown.values())
@@ -764,12 +754,11 @@ def all_departments_page():
             
             required_assistant_heads = settings['required_assistant_heads']
             
+            # استدعاء دالة التوزيع الجديدة
             staff_breakdown = distribute_staff(
                 res_basic,
-                ratio_supervisor,
                 shifts_count,
                 required_assistant_heads=required_assistant_heads,
-                ratio_assistant_head=ratio_assistant_head
             )
             
             total_staff_in_hierarchy = sum(staff_breakdown.values())
@@ -790,7 +779,7 @@ def all_departments_page():
         st.subheader("2. جدول الاحتياج الموحد والنتائج")
         
         column_order = [
-            "القسم", "رئيس", "مساعد رئيس", "مشرف ميداني",
+            "القسم", "رئيس", "مساعد رئيس", "مشرف فترة", # تم التعديل
             "مقدم خدمة", "المجموع الإجمالي (بالاحتياط)"
         ]
         
@@ -937,10 +926,8 @@ def app():
     
     if 'reserve_factor_input' not in st.session_state:
         st.session_state['reserve_factor_input'] = 0
-    if 'ratio_supervisor' not in st.session_state:
-        st.session_state['ratio_supervisor'] = 10
-    if 'ratio_assistant_head' not in st.session_state:
-        st.session_state['ratio_assistant_head'] = DEFAULT_HEAD_ASSISTANT_RATIO
+    
+    # تم حذف تهيئة ratio_supervisor و ratio_assistant_head
     
     for role, default_salary in DEFAULT_SALARY.items():
         if f'salary_{role}' not in st.session_state:
@@ -992,10 +979,11 @@ def app():
         )
 
         st.markdown("---")
-        st.subheader("معايير الدوام والهيكل")
+        st.subheader("معايير الدوام والهيكل الثابت")
         
         st.info(f"**ساعات عمل الموظف اليومية (ثابتة):** {st.session_state['staff_hours']} ساعات")
         st.info(f"**عدد الورديات اليومية المطلوبة (ثابت):** {st.session_state['shifts_count']} ورديات")
+        st.info(f"**مشرف فترة (ثابت):** {SUPERVISORS_PER_SHIFT} لكل وردية")
         
         st.slider(
             "نسبة الاحتياط الإجمالية (%)",
@@ -1003,25 +991,17 @@ def app():
         )
         
         st.markdown("---")
-        st.subheader("معايير الهيكل القيادي")
         
-        st.number_input(
-            "معيار الهيكل القيادي (مقدم خدمة / قيادي إجمالي)",
-            min_value=1, value=st.session_state['ratio_supervisor'], step=1, key="ratio_supervisor"
-        )
-        st.number_input(
-            "معيار عدد الرؤساء / مساعدي الرؤساء",
-            min_value=1, value=st.session_state['ratio_assistant_head'], step=1, key="ratio_assistant_head"
-        )
+        # تم حذف قسم "معايير الهيكل القيادي" بالكامل
         
-        st.markdown("---")
-        
-        st.subheader("متوسط المكافاءات")
+        st.subheader("متوسط المكافآت") # تم التعديل
         
         for role, default_salary in DEFAULT_SALARY.items():
             key = f'salary_{role}'
+            # التأكد من استخدام المسمى الجديد للمشرف في العرض
+            display_role = "مشرف فترة" if role == "مشرف فترة" else role
             st.number_input(
-                f"مكافاءة **{role}** (ريال)",
+                f"مكافأة **{display_role}** (ريال)",
                 min_value=1,
                 value=st.session_state[key],
                 step=100,
