@@ -2,6 +2,7 @@ import streamlit as st
 import math
 import pandas as pd
 from io import BytesIO
+import os # لإدارة مسارات الملفات والتحقق من وجودها
 
 # -------------------------------------------------------------------
 # 1. الثوابت العامة (Constants)
@@ -222,9 +223,9 @@ def main_page_logic():
     hajjaj_present = st.session_state.get('num_hajjaj_present', 100000)
     hajjaj_flow = st.session_state.get('num_hajjaj_flow', 50000)
     service_days = st.session_state.get('service_days', 30)
-    staff_work_hours_day = st.session_state.get('staff_hours', 12)
+    staff_work_hours_day = st.session_state.get('staff_hours', 8) # استخدام القيمة الثابتة 8
     reserve_factor = st.session_state.get('reserve_factor_input', 15) / 100
-    shifts_count = st.session_state.get('shifts_count', 2)
+    shifts_count = st.session_state.get('shifts_count', 3) # استخدام القيمة الثابتة 3
     ratio_supervisor = st.session_state.get('ratio_supervisor', 20)
     ratio_assistant_head = st.session_state.get('ratio_assistant_head', DEFAULT_HEAD_ASSISTANT_RATIO)
     
@@ -428,7 +429,7 @@ def main_page_logic():
             )
 
 # -------------------------------------------------------------------
-# 5. منطق الشاشة الموحدة (All Departments Page Logic) - تم دمجها سابقاً
+# 5. منطق الشاشة الموحدة (All Departments Page Logic)
 # -------------------------------------------------------------------
 
 def all_departments_page():
@@ -664,9 +665,9 @@ def all_departments_page():
         num_hajjaj_present = st.session_state['num_hajjaj_present']
         num_hajjaj_flow = st.session_state['num_hajjaj_flow']
         service_days = st.session_state['service_days']
-        staff_work_hours_day = st.session_state['staff_hours']
+        staff_work_hours_day = st.session_state.get('staff_hours', 8) # استخدام القيمة الثابتة 8
         reserve_factor = st.session_state['reserve_factor_input'] / 100
-        shifts_count = st.session_state['shifts_count']
+        shifts_count = st.session_state.get('shifts_count', 3) # استخدام القيمة الثابتة 3
         ratio_supervisor = st.session_state['ratio_supervisor']
         ratio_assistant_head = st.session_state['ratio_assistant_head']
 
@@ -833,7 +834,7 @@ def all_departments_page():
 
 
 # -------------------------------------------------------------------
-# 6. الدالة الرئيسية للتطبيق (Main App Function) - تم استعادة منطق التبديل
+# 6. الدالة الرئيسية للتطبيق (Main App Function) - التعديل هنا
 # -------------------------------------------------------------------
 
 def app():
@@ -845,7 +846,7 @@ def app():
     
     st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
     
-    # 1. تهيئة الحالة الافتراضية (Session State) لكافة المتغيرات، بما في ذلك الصفحة الحالية
+    # 1. تهيئة الحالة الافتراضية (Session State)
     if 'current_page' not in st.session_state:
         st.session_state['current_page'] = 'all' # ابدأ بالشاشة الموحدة
     if 'next_center_id' not in st.session_state:
@@ -853,17 +854,18 @@ def app():
     if 'dynamic_hospitality_centers' not in st.session_state:
         st.session_state['dynamic_hospitality_centers'] = []
     
-    # تهيئة جميع قيم المدخلات في الشريط الجانبي (تجنباً لأخطاء Streamlit)
+    # تهيئة جميع قيم المدخلات في الشريط الجانبي (التعديل للقيم الثابتة)
     if 'num_hajjaj_present' not in st.session_state:
         st.session_state['num_hajjaj_present'] = 100000
     if 'num_hajjaj_flow' not in st.session_state:
         st.session_state['num_hajjaj_flow'] = 50000
     if 'service_days' not in st.session_state:
         st.session_state['service_days'] = 30
-    if 'staff_hours' not in st.session_state:
-        st.session_state['staff_hours'] = 12
-    if 'shifts_count' not in st.session_state:
-        st.session_state['shifts_count'] = 2
+        
+    # **تثبيت قيم ساعات العمل والورديات**
+    st.session_state['staff_hours'] = 8 # ثابت
+    st.session_state['shifts_count'] = 3 # ثابت
+    
     if 'reserve_factor_input' not in st.session_state:
         st.session_state['reserve_factor_input'] = 15
     if 'ratio_supervisor' not in st.session_state:
@@ -877,6 +879,13 @@ def app():
 
     # 2. مدخلات الشريط الجانبي (العامة)
     with st.sidebar:
+        # **إضافة الشعار هنا**
+        logo_path = "logo.png"
+        if os.path.exists(logo_path):
+            st.image(logo_path, width=250) # يمكنك تعديل العرض حسب الحاجة
+        else:
+            st.warning("⚠️ لم يتم العثور على ملف 'logo.png' في نفس مجلد التطبيق.")
+        
         st.title("⚙️ الإعدادات العامة")
         
         # أزرار التبديل بين الصفحات
@@ -916,14 +925,9 @@ def app():
         st.markdown("---")
         st.subheader("معايير الدوام والهيكل")
         
-        st.number_input(
-            "ساعات عمل الموظف اليومية",
-            min_value=1, max_value=TOTAL_WORK_HOURS, value=st.session_state['staff_hours'], step=1, key="staff_hours"
-        )
-        st.number_input(
-            "عدد الورديات اليومية المطلوبة",
-            min_value=1, max_value=24, value=st.session_state['shifts_count'], step=1, key="shifts_count"
-        )
+        # **عرض القيم الثابتة بدلاً من مدخلات**
+        st.info(f"**ساعات عمل الموظف اليومية (ثابتة):** {st.session_state['staff_hours']} ساعات")
+        st.info(f"**عدد الورديات اليومية المطلوبة (ثابت):** {st.session_state['shifts_count']} ورديات")
         
         st.slider(
             "نسبة الاحتياط الإجمالية (%)",
@@ -964,3 +968,4 @@ def app():
 
 if __name__ == "__main__":
     app()
+```http://googleusercontent.com/image_generation_content/0
