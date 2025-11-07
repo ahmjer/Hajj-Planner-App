@@ -6,6 +6,7 @@ import os
 
 # -------------------------------------------------------------------
 # 1. الثوابت العامة (Constants)
+# (بقية الثوابت كما هي...)
 # -------------------------------------------------------------------
 
 TOTAL_WORK_HOURS = 24
@@ -54,6 +55,7 @@ TRANSLATION_MAP = {
 
 # -------------------------------------------------------------------
 # 2. الدوال المساعدة للحساب والمنطق
+# (بقية الدوال كما هي...)
 # -------------------------------------------------------------------
 
 def calculate_time_based_staff(total_events, time_per_event_min, service_days, staff_work_hours_day):
@@ -197,6 +199,7 @@ def remove_hospitality_center(center_id_to_remove):
 
 # -------------------------------------------------------------------
 # 3. وظائف مساعدة للتبديل بين الصفحات
+# (بقية الدوال كما هي...)
 # -------------------------------------------------------------------
 
 def switch_to_main():
@@ -211,6 +214,7 @@ def switch_to_all():
 
 # -------------------------------------------------------------------
 # 4. منطق الشاشة الرئيسية (الاحتساب الفردي - Main Page Logic)
+# (بقية الدوال كما هي...)
 # -------------------------------------------------------------------
 
 def main_page_logic():
@@ -461,45 +465,62 @@ def all_departments_page():
                     
             center_id = center['id']
             
-            with st.expander(f"مركز الضيافة #{center_id}: {center['name']}", expanded=True):
-                
-                # استخدام أعمدة لتنظيم المدخلات
-                col_status, col_name, col_hajjaj, col_remove = st.columns([1, 2, 2, 1])
-                
-                # 1. زر الإغلاق/الفتح (Toggle)
-                new_active = col_status.toggle(
-                    "مفعل",
-                    value=center.get('active', True),
-                    key=f"hosp_active_{center_id}"
-                )
-                st.session_state.dynamic_hospitality_centers[i]['active'] = new_active
+            # --- حاوية لكل مركز ضيافة داخل الإطار المخصص ---
+            # حقن CSS لتطبيق الإطار العودي الغامق
+            st.markdown(f"""
+                <style>
+                    /* تحديد حاوية الضيافة المحددة بالإيدي */
+                    #hosp-container-{center_id} {{
+                        border: 3px solid #800000; /* عودي غامق وسميك */
+                        padding: 10px;
+                        border-radius: 5px;
+                        margin-bottom: 10px;
+                    }}
+                </style>
+            """, unsafe_allow_html=True)
 
-                # 2. اسم المركز
-                new_name = col_name.text_input(
-                    "اسم المركز",
-                    value=center.get('name', f'مركز ضيافة #{center_id}'),
-                    key=f"hosp_name_{center_id}"
-                )
-                st.session_state.dynamic_hospitality_centers[i]['name'] = new_name
-
-                # 3. عدد حجاج المركز
-                new_hajjaj_count = col_hajjaj.number_input(
-                    "عدد الحجاج/الزوار (تقديري)",
-                    min_value=1,
-                    value=center.get('hajjaj_count', st.session_state.get('num_hajjaj_present', 100000)),
-                    step=100,
-                    key=f"hosp_hajjaj_{center_id}"
-                )
-                st.session_state.dynamic_hospitality_centers[i]['hajjaj_count'] = new_hajjaj_count
+            with st.container(): # هذا هو الحاوية التي يمكن أن تحتاج إلى إطار في CSS
+                st.markdown(f'<div id="hosp-container-{center_id}">', unsafe_allow_html=True)
                 
-                # 4. زر الإزالة (خارج النموذج)
-                col_remove.button(
-                    "🗑️ إزالة",
-                    on_click=remove_hospitality_center,
-                    args=(center_id,),
-                    key=f"hosp_remove_{center_id}"
-                )
+                with st.expander(f"مركز الضيافة #{center_id}: {center['name']}", expanded=True):
+                    
+                    # استخدام أعمدة لتنظيم المدخلات
+                    col_status, col_name, col_hajjaj, col_remove = st.columns([1, 2, 2, 1])
+                    
+                    # 1. زر الإغلاق/الفتح (Toggle)
+                    new_active = col_status.toggle(
+                        "مفعل",
+                        value=center.get('active', True),
+                        key=f"hosp_active_{center_id}"
+                    )
+                    st.session_state.dynamic_hospitality_centers[i]['active'] = new_active
 
+                    # 2. اسم المركز
+                    new_name = col_name.text_input(
+                        "اسم المركز",
+                        value=center.get('name', f'مركز ضيافة #{center_id}'),
+                        key=f"hosp_name_{center_id}"
+                    )
+                    st.session_state.dynamic_hospitality_centers[i]['name'] = new_name
+
+                    # 3. عدد حجاج المركز
+                    new_hajjaj_count = col_hajjaj.number_input(
+                        "عدد الحجاج/الزوار (تقديري)",
+                        min_value=1,
+                        value=center.get('hajjaj_count', st.session_state.get('num_hajjaj_present', 100000)),
+                        step=100,
+                        key=f"hosp_hajjaj_{center_id}"
+                    )
+                    st.session_state.dynamic_hospitality_centers[i]['hajjaj_count'] = new_hajjaj_count
+                    
+                    # 4. زر الإزالة (خارج النموذج)
+                    col_remove.button(
+                        "🗑️ إزالة",
+                        on_click=remove_hospitality_center,
+                        args=(center_id,),
+                        key=f"hosp_remove_{center_id}"
+                    )
+                st.markdown('</div>', unsafe_allow_html=True) # إغلاق وسم div المخصص
 
     st.markdown("---")
     
@@ -554,22 +575,26 @@ def all_departments_page():
                         'required_assistant_heads': 0
                     }
                 
+                # --- تطبيق الإطار العودي الغامق هنا لكل إدارة فرعية ---
+                # إنشاء CSS مخصص
+                css_class = f"dept-container-{name.replace(' ', '_').replace('ؤ', 'و')}"
+                st.markdown(f"""
+                    <style>
+                        .{css_class} {{
+                            border: 3px solid #800000; /* عودي غامق وسميك */
+                            padding: 10px;
+                            border-radius: 5px;
+                            margin-bottom: 10px;
+                            background-color: #f0f2f6; /* لون خلفية فاتح لتوضيح الحدود */
+                        }}
+                    </style>
+                """, unsafe_allow_html=True)
+                
                 with col:
-                    # إضافة مربع حول كل قسم فرعي
-                    st.markdown(f"""
-                        <style>
-                            .darker-container {{
-                                background-color: #f0f2f6;
-                                padding: 10px;
-                                border-radius: 5px;
-                                border: 1px solid rgba(49, 51, 63, 0.2);
-                                margin-bottom: 10px;
-                            }}
-                        </style>
-                        <div class="darker-container">
-                            ***_{name}_***
-                        </div>
-                    """, unsafe_allow_html=True)
+                    # استخدام div مخصص ضمن st.markdown لوضع الإطار حول جميع المدخلات
+                    st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
+                    
+                    st.markdown(f"***_{name}_***") # اسم القسم
                     
                     # مدخل مساعد الرئيس الإلزامي
                     asst_head_req_val = st.number_input(
@@ -608,12 +633,15 @@ def all_departments_page():
                     elif dept_type == 'Bus_Ratio':
                         bus_count_val = st.number_input("عدد الحافلات المتوقع", min_value=1, value=user_settings[name]['bus_count'], key=f"all_bus_count_{name}_{i}")
                         bus_ratio_val = st.number_input("المعيار (حافلة/موظف)", min_value=1, value=user_settings[name]['ratio'], key=f"all_bus_ratio_{name}_{i}")
+                    
+                    st.markdown('</div>', unsafe_allow_html=True) # إغلاق div المخصص
         
         st.markdown("---")
         # زر الإرسال الوحيد المسموح به داخل النموذج
         calculate_button = st.form_submit_button("🔄 احتساب وعرض النتائج الموحدة", type="primary")
 
     # 2. التحديث وتخزين إعدادات المستخدم بعد الضغط على Submit
+    # (بقية الكود كما هو...)
     if calculate_button:
         
         for category_name, depts in DEPARTMENTS.items():
