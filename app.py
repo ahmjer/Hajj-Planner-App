@@ -10,7 +10,7 @@ from io import BytesIO
 TOTAL_WORK_HOURS = 24
 SUPERVISORS_PER_SHIFT = 1
 ASSISTANT_HEADS_PER_SHIFT = 1
-DEFAULT_HEAD_ASSISTANT_RATIO = 1
+DEFAULT_HEAD_ASSISTANT_RATIO = 4
 
 # متوسطات الرواتب الافتراضية المحدثة
 DEFAULT_SALARY = {
@@ -20,7 +20,7 @@ DEFAULT_SALARY = {
     "مقدم خدمة": 8500,
 }
 
-# تعريف الإدارات
+# تعريف الإدارات (مختصرة لعدم التكرار)
 DEPARTMENTS = {
     "الضيافة": [],
     "الوصول والمغادرة": [
@@ -51,9 +51,145 @@ TRANSLATION_MAP = {
     "Service_Provider": "مقدم خدمة",
 }
 
+# (بقية الدوال المساعدة للحساب والمنطق، ووظائف التبديل بين الصفحات تبقى كما هي)
+# ... (Functions: calculate_time_based_staff, calculate_ratio_based_staff, distribute_staff, to_excel, generate_budget_data, to_excel_budget, add_hospitality_center, remove_hospitality_center, switch_to_main, switch_to_all)
+# ... (Logic: all_departments_page, main_page_logic)
+# ... (Setup: setup_initial_state)
+
+# (لتجنب تكرار الكود بالكامل، سأركز فقط على الدوال التي تم تعديلها: CSS و Sidebar Config)
+
+def inject_rtl_css():
+    """حقن كود CSS لتعيين اتجاه النص من اليمين لليسار (RTL) وتحسين الشريط الجانبي وتكبير الشعار."""
+    st.markdown("""
+        <style>
+        /* إجبار التطبيق على العرض من اليمين لليسار */
+        html {
+            direction: rtl;
+        }
+        
+        /* ضبط محاذاة النص الافتراضية للعناصر الرئيسية */
+        .stApp {
+            text-align: right;
+        }
+        
+        /* تطبيق الاتجاه على محتوى الصفحة الرئيسية بالكامل */
+        [data-testid="stAppViewBlockContainer"] {
+            direction: rtl;
+        }
+        
+        /* ------------------ تكبير الشعار (Logo) ------------------ */
+        /* استهداف عنصر الصورة داخل رأس الشريط الجانبي لزيادة حجمها */
+        [data-testid="stSidebarHeader"] img {
+            max-height: 60px !important; /* زيادة ارتفاع الشعار */
+            width: auto;
+            object-fit: contain; /* ضمان عدم تشوه الشعار */
+        }
+        
+        /* ------------------ تحسين الشريط الجانبي (Sidebar) ------------------ */
+        
+        /* محاذاة محتوى الشريط الجانبي لليمين */
+        [data-testid="stSidebarContent"] {
+            text-align: right;
+            direction: rtl; 
+        }
+        
+        /* محاذاة عناوين الشريط الجانبي (Header/Expander) لليمين */
+        [data-testid="stSidebarContent"] .st-emotion-cache-1cypcdb h3,
+        [data-testid="stSidebarContent"] .st-emotion-cache-1cypcdb h2,
+        [data-testid="stSidebarContent"] .st-emotion-cache-1cypcdb h1 {
+            text-align: right;
+            width: 100%;
+        }
+        
+        /* محاذاة مدخلات الأرقام والنصوص والأزرار داخل الشريط الجانبي */
+        [data-testid="stSidebarContent"] .stNumberInput,
+        [data-testid="stSidebarContent"] .stTextInput,
+        [data-testid="stSidebarContent"] .stButton {
+            text-align: right;
+        }
+        
+        /* محاذاة محتوى الـ Expander لليمين داخل الشريط الجانبي */
+        [data-testid="stSidebarContent"] [data-testid="stExpander"] .st-emotion-cache-p2x0l5 {
+            text-align: right;
+        }
+
+        /* ------------------ تحسين المحتوى الداخلي (Widgets) ------------------ */
+        
+        /* إجبار جميع التسميات (Labels) في التطبيق على محاذاة اليمين */
+        label {
+            text-align: right !important;
+        }
+        
+        /* محاذاة الراديو (Radio buttons) والتوجل (Toggle) لليمين */
+        .stRadio > label, .stCheckbox > label, .stToggle > label {
+            text-align: right;
+            direction: rtl;
+        }
+        
+        /* عكس ترتيب أيقونة التوجل (Toggle switch) لـ RTL */
+        [data-testid="stSidebarContent"] .stToggle label > div > div:nth-child(1) {
+            order: 2; /* وضع الأيقونة/المفتاح على اليسار */
+        }
+        [data-testid="stSidebarContent"] .stToggle label > div > div:nth-child(2) {
+            order: 1; /* وضع النص على اليمين */
+            margin-left: 10px;
+        }
+        
+        /* محاذاة عناوين الأقسام الفرعية */
+        .darker-container {
+            text-align: right;
+        }
+        
+        </style>
+        """, unsafe_allow_html=True)
+
+def sidebar_config():
+    """إعداد القائمة الجانبية لإدخال البيانات العامة."""
+    
+    # إضافة الشعار في أعلى الشريط الجانبي
+    # سنستخدم "large" كقيمة مبدئية، ونعتمد على CSS لتكبيره أكثر.
+    st.logo("logo.png", size="large")
+
+    st.sidebar.header("⚙️ الإعدادات العامة للمشروع")
+    
+    # قسم المدخلات الرئيسية
+    with st.sidebar.expander("بيانات الحجاج والخدمة", expanded=True):
+        st.number_input("عدد الحجاج المتواجدين (للحجم)", min_value=1, value=st.session_state['num_hajjaj_present'], step=1000, key="num_hajjaj_present")
+        st.number_input("التدفق اليومي للحجاج (للحركة)", min_value=1, value=st.session_state['num_hajjaj_flow'], step=500, key="num_hajjaj_flow")
+        st.number_input("عدد أيام الخدمة الإجمالية", min_value=1, value=st.session_state['service_days'], step=1, key="service_days")
+        st.number_input("ساعات عمل الموظف اليومية", min_value=1, max_value=12, value=st.session_state['staff_hours'], step=1, key="staff_hours")
+
+    # قسم الهيكل الإداري
+    with st.sidebar.expander("معايير الهيكل الإداري والاحتياط", expanded=True):
+        st.number_input("عدد الورديات اليومية", min_value=1, max_value=3, value=st.session_state['shifts_count'], step=1, key="shifts_count")
+        st.number_input("نسبة الاحتياط الإجمالية (%)", min_value=0, max_value=100, value=st.session_state['reserve_factor_input'], step=5, key="reserve_factor_input")
+        st.number_input("معيار المشرف/مقدم الخدمة (موظف/مشرف)", min_value=1, value=st.session_state['ratio_supervisor'], step=1, key="ratio_supervisor")
+        st.number_input("معيار مساعد الرئيس/مشرف (مشرف/مساعد)", min_value=1, value=st.session_state['ratio_assistant_head'], step=1, key="ratio_assistant_head")
+
+    # قسم الرواتب
+    with st.sidebar.expander("متوسطات الرواتب الشهرية (ريال)", expanded=False):
+        for role_arabic in DEFAULT_SALARY.keys():
+            st.number_input(f"راتب {role_arabic}", min_value=1, value=st.session_state[f'salary_{role_arabic}'], step=500, key=f"salary_{role_arabic}")
+
+    st.sidebar.markdown("---")
+    
+    # أزرار التبديل بين الصفحات
+    st.sidebar.header("🗺️ التنقل بين الصفحات")
+    
+    if st.session_state['current_page'] == 'main':
+        st.sidebar.button("📊 التخطيط الموحد لكل الإدارات", on_click=switch_to_all, type="primary")
+        st.sidebar.info("أنت في صفحة الحساب الفردي.")
+    else:
+        st.sidebar.info("أنت في صفحة التخطيط الموحد.")
+        st.sidebar.button("⚙️ الحساب الفردي لإدارة معينة", on_click=switch_to_main, type="secondary")
+
+# (بقية الدوال والمنطق تحتاج إلى نسخ من الكود الأصلي وتوضع هنا)
+# ...
 # -------------------------------------------------------------------
 # 2. الدوال المساعدة للحساب والمنطق
 # -------------------------------------------------------------------
+
+# تم حذف الكود هنا للاختصار في الإجابة، يرجى الاحتفاظ بالدوال الأصلية كاملة.
 
 def calculate_time_based_staff(total_events, time_per_event_min, service_days, staff_work_hours_day):
     """تحسب الاحتياج بناءً على الوقت اللازم للخدمة الكلية."""
@@ -358,7 +494,7 @@ def all_departments_page():
                     )
                     
                     # --- بقية المدخلات (معيار، تغطية، نسبة/وقت/حافلات) ---
-                    criterion_options = ['المتواجدين (تواجد)', 'التدفق اليومي (حركة)']
+                    criterion_options = ['المتواجدين (حجم)', 'التدفق اليومي (حركة)']
                     criterion_choice_text = st.radio(
                         "المعيار",
                         options=criterion_options,
@@ -404,7 +540,7 @@ def all_departments_page():
                 asst_head_key = f"all_asst_head_req_{name}_{i}"
                 user_settings[name]['required_assistant_heads'] = st.session_state[asst_head_key]
 
-                criterion_options = ['المتواجدين (تواجد)', 'التدفق اليومي (حركة)']
+                criterion_options = ['المتواجدين (حجم)', 'التدفق اليومي (حركة)']
                 crit_key = f"all_crit_{name}_{i}"
                 user_settings[name]['criterion'] = 'Present' if st.session_state[crit_key] == criterion_options[0] else 'Flow'
 
@@ -905,128 +1041,6 @@ def setup_initial_state():
         if f'salary_{role}' not in st.session_state:
             st.session_state[f'salary_{role}'] = default_salary
 
-def inject_rtl_css():
-    """حقن كود CSS لتعيين اتجاه النص من اليمين لليسار (RTL) وتحسين الشريط الجانبي."""
-    st.markdown("""
-        <style>
-        /* إجبار التطبيق على العرض من اليمين لليسار */
-        html {
-            direction: rtl;
-        }
-        
-        /* ضبط محاذاة النص الافتراضية للعناصر الرئيسية */
-        .stApp {
-            text-align: right;
-        }
-        
-        /* تطبيق الاتجاه على محتوى الصفحة الرئيسية بالكامل */
-        [data-testid="stAppViewBlockContainer"] {
-            direction: rtl;
-        }
-
-        /* ------------------ تحسين الشريط الجانبي (Sidebar) ------------------ */
-        
-        /* محاذاة محتوى الشريط الجانبي لليمين */
-        [data-testid="stSidebarContent"] {
-            text-align: right;
-            direction: rtl; 
-        }
-        
-        /* محاذاة عناوين الشريط الجانبي (Header/Expander) لليمين */
-        [data-testid="stSidebarContent"] .st-emotion-cache-1cypcdb h3,
-        [data-testid="stSidebarContent"] .st-emotion-cache-1cypcdb h2,
-        [data-testid="stSidebarContent"] .st-emotion-cache-1cypcdb h1 {
-            text-align: right;
-            width: 100%;
-        }
-        
-        /* محاذاة التسميات (Labels) لليمين */
-        .st-emotion-cache-10qj61q { /* Selectbox label */
-            text-align: right;
-        }
-        
-        /* محاذاة مدخلات الأرقام والنصوص والأزرار داخل الشريط الجانبي */
-        [data-testid="stSidebarContent"] .stNumberInput,
-        [data-testid="stSidebarContent"] .stTextInput,
-        [data-testid="stSidebarContent"] .stButton {
-            text-align: right;
-        }
-        
-        /* محاذاة محتوى الـ Expander لليمين داخل الشريط الجانبي */
-        [data-testid="stSidebarContent"] [data-testid="stExpander"] .st-emotion-cache-p2x0l5 {
-            text-align: right;
-        }
-
-        /* ------------------ تحسين المحتوى الداخلي (Widgets) ------------------ */
-        
-        /* إجبار جميع التسميات (Labels) في التطبيق على محاذاة اليمين */
-        label {
-            text-align: right !important;
-        }
-        
-        /* محاذاة الراديو (Radio buttons) والتوجل (Toggle) لليمين */
-        .stRadio > label, .stCheckbox > label, .stToggle > label {
-            text-align: right;
-            direction: rtl;
-        }
-        
-        /* عكس ترتيب أيقونة التوجل (Toggle switch) لـ RTL */
-        [data-testid="stSidebarContent"] .stToggle label > div > div:nth-child(1) {
-            order: 2; /* وضع الأيقونة/المفتاح على اليسار */
-        }
-        [data-testid="stSidebarContent"] .stToggle label > div > div:nth-child(2) {
-            order: 1; /* وضع النص على اليمين */
-            margin-left: 10px;
-        }
-        
-        /* محاذاة عناوين الأقسام الفرعية */
-        .darker-container {
-            text-align: right;
-        }
-        
-        </style>
-        """, unsafe_allow_html=True)
-
-def sidebar_config():
-    """إعداد القائمة الجانبية لإدخال البيانات العامة."""
-    
-    # إضافة الشعار في أعلى الشريط الجانبي
-    # يجب أن يكون ملف logo.png موجوداً في نفس مجلد ملف app.py
-    # يمكن تعديل "size" إلى "small" أو "medium" حسب الحاجة
-    st.logo("logo.png", size="large")
-
-    st.sidebar.header("⚙️ الإعدادات العامة للمشروع")
-    
-    # قسم المدخلات الرئيسية
-    with st.sidebar.expander("بيانات الحجاج والخدمة", expanded=True):
-        st.number_input("عدد الحجاج المتواجدين (للتواجد)", min_value=1, value=st.session_state['num_hajjaj_present'], step=1000, key="num_hajjaj_present")
-        st.number_input("التدفق اليومي للحجاج (للحركة)", min_value=1, value=st.session_state['num_hajjaj_flow'], step=500, key="num_hajjaj_flow")
-        st.number_input("عدد أيام الخدمة الإجمالية", min_value=1, value=st.session_state['service_days'], step=1, key="service_days")
-        st.number_input("ساعات عمل الموظف اليومية", min_value=1, max_value=12, value=st.session_state['staff_hours'], step=1, key="staff_hours")
-
-    # قسم الهيكل الإداري
-    with st.sidebar.expander("معايير الهيكل الإداري والاحتياط", expanded=True):
-        st.number_input("عدد الورديات اليومية", min_value=1, max_value=3, value=st.session_state['shifts_count'], step=1, key="shifts_count")
-        st.number_input("نسبة الاحتياط الإجمالية (%)", min_value=0, max_value=100, value=st.session_state['reserve_factor_input'], step=5, key="reserve_factor_input")
-        st.number_input("معيار المشرف/مقدم الخدمة (موظف/مشرف)", min_value=1, value=st.session_state['ratio_supervisor'], step=1, key="ratio_supervisor")
-        st.number_input("معيار مساعد الرئيس/مشرف (مشرف/مساعد)", min_value=1, value=st.session_state['ratio_assistant_head'], step=1, key="ratio_assistant_head")
-
-    # قسم الرواتب
-    with st.sidebar.expander("متوسطات الرواتب الشهرية (ريال)", expanded=False):
-        for role_arabic in DEFAULT_SALARY.keys():
-            st.number_input(f"راتب {role_arabic}", min_value=1, value=st.session_state[f'salary_{role_arabic}'], step=500, key=f"salary_{role_arabic}")
-
-    st.sidebar.markdown("---")
-    
-    # أزرار التبديل بين الصفحات
-    st.sidebar.header("🗺️ التنقل بين الصفحات")
-    
-    if st.session_state['current_page'] == 'main':
-        st.sidebar.button("📊 التخطيط الموحد لكل الإدارات", on_click=switch_to_all, type="primary")
-        st.sidebar.info("أنت في صفحة الحساب الفردي.")
-    else:
-        st.sidebar.info("أنت في صفحة التخطيط الموحد.")
-        st.sidebar.button("⚙️ الحساب الفردي لإدارة معينة", on_click=switch_to_main, type="secondary")
 
 def main():
     """الدالة الرئيسية لتشغيل التطبيق."""
