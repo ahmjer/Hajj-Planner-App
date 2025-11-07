@@ -385,7 +385,6 @@ def all_departments_page():
     st.title(" تخطيط القوى العاملة الموحد")
     st.markdown("---")
     
-    st.subheader("1. ضبط معايير الاحتساب لجميع الإدارات")
     
     if 'user_settings_all' not in st.session_state:
             st.session_state['user_settings_all'] = {}
