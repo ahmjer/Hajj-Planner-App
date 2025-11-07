@@ -12,7 +12,7 @@ import os
 TOTAL_WORK_HOURS = 24
 SUPERVISORS_PER_SHIFT = 1
 ASSISTANT_HEADS_PER_SHIFT = 1
-DEFAULT_HEAD_ASSISTANT_RATIO = 4
+DEFAULT_HEAD_ASSISTANT_RATIO = 1
 
 DEFAULT_SALARY = {
     "رئيس": 37000,
@@ -407,7 +407,7 @@ def all_departments_page():
             # إدارة المراكز (خارج النموذج)
             with st.container(border=False): # حاوية داخلية بدون إطار
                 st.markdown("---")
-                st.markdown("**إدارة المراكز (الإغلاق/الفتح وتحديد الحجاج)**")
+                st.markdown("**إدارة المراكز (الإغلاق/الفتح )**")
                 
                 centers_to_display = st.session_state.dynamic_hospitality_centers[:]
                 
@@ -951,10 +951,10 @@ def app():
         else:
             st.warning("⚠️ لم يتم العثور على ملف 'logo.png' في نفس مجلد التطبيق. يرجى التأكد من مساره.")
         
-        st.title("⚙️ الإعدادات العامة")
+        st.title(" الإعدادات العامة")
         
         # أزرار التبديل بين الصفحات
-        st.subheader("نافذة العرض")
+
         col_main, col_all = st.columns(2)
         
         col_main.button(
@@ -972,7 +972,7 @@ def app():
         )
         
         st.markdown("---")
-        st.subheader("بيانات المدخلات الأساسية")
+        st.subheader("البيانات الأساسية")
         
         st.number_input(
             "إجمالي الحجاج/الزوار (المتواجدين)",
@@ -1012,12 +1012,12 @@ def app():
         
         st.markdown("---")
         
-        st.subheader("💰 تعديل الرواتب الشهرية")
+        st.subheader("متوسط المكافاءات")
         
         for role, default_salary in DEFAULT_SALARY.items():
             key = f'salary_{role}'
             st.number_input(
-                f"راتب **{role}** (ريال)",
+                f"مكافاءة **{role}** (ريال)",
                 min_value=1,
                 value=st.session_state[key],
                 step=100,
