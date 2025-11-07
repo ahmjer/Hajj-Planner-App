@@ -210,15 +210,18 @@ def all_departments_page():
         
         centers_to_display = st.session_state.dynamic_hospitality_centers[:]
         
-        # 🚨 تصحيح IndentationError هنا 
         for i, center in enumerate(centers_to_display):
             center_id = center['id']
             
-            # 💡 استخدام قيمة الاسم المخزنة في state (لحل مشكلة تسرب المفاتيح في العنوان)
-            current_name = st.session_state.get(f"hosp_name_{center_id}", center.get('name', f'مركز ضيافة #{center_id}'))
+            # 💡 التعديل هنا: تبسيط العنوان في Expander ليكون ID فقط لتجنب تسرب المفاتيح
+            # واستخدام key مخصص مختلف
+            expander_title_key = f"hosp_expander_key_{center_id}"
             
-            # ندمج الـ ID والاسم في العنوان
-            with st.expander(f"مركز الضيافة #{center_id}: {current_name}", expanded=True): 
+            with st.expander(f"مركز ضيافة #{center_id}", expanded=True, key=expander_title_key): 
+                
+                # 💡 عرض اسم المركز بخط أغمق وفي المنتصف داخل الـ Expander
+                current_name = st.session_state.get(f"hosp_name_{center_id}", center.get('name', f'مركز ضيافة #{center_id}'))
+                st.markdown(f'<h3 style="text-align: center; font-weight: 700; margin-top: 0; margin-bottom: 20px;">{current_name}</h3>', unsafe_allow_html=True)
                 
                 # إبقاء تصميم الأعمدة السابق
                 col_status, col_name, col_hajjaj, col_remove = st.columns([1.5, 3, 2.5, 1])
@@ -227,7 +230,8 @@ def all_departments_page():
                 new_active = col_status.toggle(
                     "مفعل", 
                     value=center.get('active', True), 
-                    key=f"hosp_active_{center_id}"
+                    key=f"hosp_active_{center_id}",
+                    label_visibility="visible"
                 )
                 st.session_state.dynamic_hospitality_centers[i]['active'] = new_active
 
@@ -235,7 +239,8 @@ def all_departments_page():
                 new_name = col_name.text_input(
                     "اسم المركز", 
                     value=center.get('name', f'مركز ضيافة #{center_id}'), 
-                    key=f"hosp_name_{center_id}"
+                    key=f"hosp_name_{center_id}",
+                    label_visibility="visible"
                 )
                 st.session_state.dynamic_hospitality_centers[i]['name'] = new_name
 
@@ -245,7 +250,8 @@ def all_departments_page():
                     min_value=1, 
                     value=center.get('hajjaj_count', st.session_state['num_hajjaj_present']), 
                     step=100, 
-                    key=f"hosp_hajjaj_{center_id}"
+                    key=f"hosp_hajjaj_{center_id}",
+                    label_visibility="visible"
                 )
                 st.session_state.dynamic_hospitality_centers[i]['hajjaj_count'] = new_hajjaj_count
                 
@@ -275,7 +281,7 @@ def all_departments_page():
                     ratio_key = f"Hosp_Ratio_{center_id}"
                     default_ratio = user_settings.get(ratio_key, 200) 
                     
-                    # نستخدم هنا current_name الذي تم حسابه سابقاً
+                    # نستخدم هنا current_name
                     current_name_for_ratio = st.session_state.get(f"hosp_name_{center_id}", center.get('name', f'مركز ضيافة #{center_id}'))
                     
                     new_ratio = st.number_input(
@@ -320,7 +326,8 @@ def all_departments_page():
                 with col:
                     # إضافة مربع حول كل قسم فرعي (خلفية أغمق)
                     with st.container(border=True): 
-                        st.markdown(f"***_{name}_***")
+                        # 💡 التعديل هنا: تطبيق تنسيق التوسيط والخط الغامق على عناوين الأقسام الفرعية
+                        st.markdown(f'<h5 style="text-align: center; font-weight: 700; margin-top: 0; margin-bottom: 10px;">{name}</h5>', unsafe_allow_html=True)
                         
                         # مدخل مساعد الرئيس الإلزامي
                         asst_head_req_val = st.number_input(
