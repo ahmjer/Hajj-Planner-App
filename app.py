@@ -213,9 +213,10 @@ def all_departments_page():
         for i, center in enumerate(centers_to_display):
             center_id = center['id']
             
-            with st.expander(f"مركز الضيافة #{center_id}: {center['name']}", expanded=True):
+            # 💡 التعديل هنا: تبسيط عنوان Expander لمنع تداخل الـ keys
+            with st.expander(f"تفاصيل المركز: {center['name']}", expanded=True): 
                 
-                # تم تعديل نسب الأعمدة هنا: 1.5 للحالة، 3 للاسم، 2.5 للحجاج، 1 للإزالة
+                # إبقاء تصميم الأعمدة السابق (الذي طلب المستخدم العودة إليه)
                 col_status, col_name, col_hajjaj, col_remove = st.columns([1.5, 3, 2.5, 1])
                 
                 # 1. زر الإغلاق/الفتح (Toggle)
@@ -244,8 +245,7 @@ def all_departments_page():
                 )
                 st.session_state.dynamic_hospitality_centers[i]['hajjaj_count'] = new_hajjaj_count
                 
-                # 4. زر الإزالة (خارج النموذج)
-                # استخدام margin-top لتنسيق أفضل مع الإدخالات المجاورة
+                # 4. زر الإزالة
                 col_remove.markdown("<div style='margin-top: 29px;'>", unsafe_allow_html=True)
                 col_remove.button(
                     "🗑️ إزالة", 
@@ -311,7 +311,7 @@ def all_departments_page():
                     }
                 
                 with col:
-                    # إضافة مربع حول كل قسم فرعي (هذا هو المستهدف لتغميق الخلفية)
+                    # إضافة مربع حول كل قسم فرعي (خلفية أغمق)
                     with st.container(border=True): 
                         st.markdown(f"***_{name}_***")
                         
