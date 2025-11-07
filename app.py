@@ -905,7 +905,7 @@ def app():
         }
         
         /* تقليل المسافة العلوية لتقليل الفراغات */
-        div.block-container{padding-top:1rem;}
+        div.block-container{padding-top: 2.5rem;}
         </style>
     """, unsafe_allow_html=True)
     
