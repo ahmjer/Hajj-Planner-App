@@ -222,7 +222,7 @@ def main_page_logic():
             'coverage': dept_info.get('default_coverage', 100) / 100,
             'ratio': dept_info.get('default_ratio', 1),
             'time': dept_info.get('default_time', 1),
-            'bus_count': 20,
+            'bus_count': 100,
             'events_multiplier': 2,
             'required_assistant_heads': 0
         }
