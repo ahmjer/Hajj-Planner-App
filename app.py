@@ -6,6 +6,7 @@ import os
 
 # -------------------------------------------------------------------
 # 1. الثوابت العامة (Constants)
+# (بقية الثوابت كما هي...)
 # -------------------------------------------------------------------
 
 TOTAL_WORK_HOURS = 24
@@ -73,31 +74,23 @@ def calculate_ratio_based_staff(num_units, ratio):
 def distribute_staff(total_basic_staff, ratio_supervisor, shifts, required_assistant_heads=0, ratio_assistant_head=DEFAULT_HEAD_ASSISTANT_RATIO):
     """
     توزع مقدمي الخدمة على الهيكل الإداري (مشرفين ورؤساء).
-    يطبق التعديل الجديد: الحد الأدنى للقيادة الإجمالية (رئيس+مساعد رئيس+مشرف) يُحسب مقابل مقدمي الخدمة.
     """
     
     service_provider = total_basic_staff
     
-    # 1. تعريف الحدود الدنيا الثابتة لكل دور (حسب عدد الورديات)
     head = 1
     field_supervisor_fixed = SUPERVISORS_PER_SHIFT * shifts
     assistant_head_fixed = required_assistant_heads * shifts
     
-    # 2. الحد الأدنى الهرمي للقيادة الإجمالية (رئيس، مساعد رئيس، مشرف) 
     total_leadership_min_hierarchical = math.ceil(service_provider / ratio_supervisor)
 
-    # 3. حساب القيادة الثابتة الأدنى المضمونة (بغض النظر عن الهرمية)
     leadership_fixed_sum = head + assistant_head_fixed + field_supervisor_fixed
 
-    # 4. مقارنة القيادة الثابتة بالقيادة الهرمية المطلوبة
     if total_leadership_min_hierarchical > leadership_fixed_sum:
-        # إذا كانت النسبة الهرمية تتطلب قيادة أكثر من الثابت المضمون:
         extra_leadership_needed = total_leadership_min_hierarchical - leadership_fixed_sum
         total_supervisors = field_supervisor_fixed + extra_leadership_needed
         assistant_head = assistant_head_fixed
-        
     else:
-        # نكتفي بالحد الأدنى الثابت لكل دور
         total_supervisors = field_supervisor_fixed
         assistant_head = assistant_head_fixed
         
@@ -121,9 +114,7 @@ def generate_budget_data(total_staff_per_role, service_days):
     budget_data = []
     final_total_monthly_cost = 0
     
-    # 1. حساب التكاليف لكل رتبة
     for role, staff_count in total_staff_per_role.items():
-        # استخدام الراتب المخزن في session_state أو الافتراضي
         salary = st.session_state.get(f'salary_{role}', DEFAULT_SALARY.get(role, 0))
         monthly_cost = staff_count * salary
         final_total_monthly_cost += monthly_cost
@@ -135,19 +126,15 @@ def generate_budget_data(total_staff_per_role, service_days):
             "التكلفة الشهرية الإجمالية (ريال)": monthly_cost
         })
 
-    # تكلفة المشروع هي التكلفة الشهرية مضروبة في مدة الخدمة/30 يوم
     total_project_cost = final_total_monthly_cost / 30 * service_days
     
     df_budget = pd.DataFrame(budget_data)
     
-    # 2. إنشاء ملف Excel متعدد الأوراق
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         
-        # الورقة 1: جدول تفاصيل الرتب
         df_budget.to_excel(writer, index=False, sheet_name='تفاصيل_الرواتب_الشهرية')
 
-        # الورقة 2: ملخص الإجماليات
         summary_data = {
             "البيان": ["إجمالي التكلفة الشهرية (ريال)", f"إجمالي تكلفة المشروع ({service_days} يوم) (ريال)", "إجمالي الموظفين (بدون احتياط)"],
             "القيمة": [final_total_monthly_cost, total_project_cost, sum(total_staff_per_role.values())]
@@ -427,6 +414,7 @@ def main_page_logic():
 # دالة مساعدة لتطبيق CSS
 def apply_maroon_border_css(class_name):
     """تطبق نمط الإطار العودي الغامق (Maroon #800000) على فئة CSS محددة."""
+    # تأكد من أن الستايل يتم حقنه مرة واحدة
     st.markdown(f"""
         <style>
             .{class_name} {{
@@ -450,7 +438,10 @@ def all_departments_page():
             
     user_settings = st.session_state['user_settings_all']
     
+    
     # --- إدارة المراكز الديناميكية (قسم الضيافة) ---
+    
+    # نفتح الإطار العودي حول قسم الضيافة بالكامل
     apply_maroon_border_css("hospitality-section")
     st.markdown('<div class="hospitality-section">', unsafe_allow_html=True)
     
@@ -460,7 +451,7 @@ def all_departments_page():
     
     if st.session_state.dynamic_hospitality_centers:
         
-        # نستخدم حاوية لعرض المراكز التي يمكن إدارتها خارج النموذج
+        # حاوية لإدارة المراكز (خارج النموذج)
         with st.container(border=True):
             st.markdown("**إدارة مراكز الضيافة (الإغلاق/الفتح وتحديد الحجاج)**")
             
@@ -474,7 +465,6 @@ def all_departments_page():
                 
                 with st.expander(f"مركز الضيافة #{center_id}: {center['name']}", expanded=True):
                     
-                    # استخدام أعمدة لتنظيم المدخلات
                     col_status, col_name, col_hajjaj, col_remove = st.columns([1, 2, 2, 1])
                     
                     # 1. زر الإغلاق/الفتح (Toggle)
@@ -514,29 +504,39 @@ def all_departments_page():
         st.info("لا توجد مراكز ضيافة مُضافة بعد. يرجى إضافة مركز للبدء.")
         
     st.markdown('</div>', unsafe_allow_html=True) # إغلاق الإطار الخاص بالضيافة
-
+    
     st.markdown("---")
     
     # --- ضبط المعايير العامة ونسبة الضيافة (داخل النموذج) ---
     with st.form("all_dept_criteria_form"):
         
-        # 1. مدخلات نسبة الضيافة (داخل النموذج)
+        # 1. مدخلات نسبة الضيافة (داخل النموذج - يجب أن تكون داخل الفورم)
+        # نفتح الإطار العودي حول قسم الضيافة الثاني (النسبة)
+        apply_maroon_border_css("hospitality-ratio-section")
+        st.markdown('<div class="hospitality-ratio-section">', unsafe_allow_html=True)
+
         st.markdown("#### ⚙️ معيار نسبة مقدمي الخدمة لمراكز الضيافة")
         with st.container(border=True): # مربع لمدخلات الضيافة
-            for i, center in enumerate(st.session_state.dynamic_hospitality_centers[:]):
-                if center['active']:
-                    center_id = center['id']
-                    ratio_key = f"Hosp_Ratio_{center_id}"
-                    default_ratio = user_settings.get(ratio_key, 200)
-                    
-                    new_ratio = st.number_input(
-                        f"المعيار (حاج/موظف) لـ **{center['name']}**",
-                        min_value=1,
-                        value=default_ratio,
-                        key=f"hosp_ratio_{center_id}"
-                    )
-                    user_settings[ratio_key] = new_ratio
-        
+            
+            active_centers = [c for c in st.session_state.dynamic_hospitality_centers[:] if c['active']]
+            if not active_centers:
+                st.warning("يجب تفعيل مركز ضيافة واحد على الأقل لحساب النسبة.")
+                
+            for center in active_centers:
+                center_id = center['id']
+                ratio_key = f"Hosp_Ratio_{center_id}"
+                default_ratio = user_settings.get(ratio_key, 200)
+                
+                new_ratio = st.number_input(
+                    f"المعيار (حاج/موظف) لـ **{center['name']}**",
+                    min_value=1,
+                    value=default_ratio,
+                    key=f"hosp_ratio_{center_id}"
+                )
+                user_settings[ratio_key] = new_ratio
+                
+        st.markdown('</div>', unsafe_allow_html=True) # إغلاق إطار قسم الضيافة الثاني
+
         st.markdown("---")
         
         # 2. مدخلات الإدارات الثابتة الأخرى (تطبيق الإطار لكل قسم رئيسي)
@@ -575,48 +575,47 @@ def all_departments_page():
                         'required_assistant_heads': 0
                     }
                 
-                with col:
-                    # نستخدم st.container لإطار داخلي خفيف حول الإدارة الفرعية للتفريق المرئي
-                    with st.container(border=True):
-                        st.markdown(f"***_{name}_***") # اسم القسم الفرعي
-                        
-                        # مدخل مساعد الرئيس الإلزامي
-                        asst_head_req_val = st.number_input(
-                            "مساعد رئيس إلزامي لكل وردية (0 = لا يوجد)",
-                            min_value=0,
-                            value=user_settings[name]['required_assistant_heads'],
+                # نستخدم st.container لإطار داخلي خفيف حول الإدارة الفرعية للتفريق المرئي
+                with col.container(border=True):
+                    st.markdown(f"***_{name}_***") # اسم القسم الفرعي
+                    
+                    # مدخل مساعد الرئيس الإلزامي
+                    asst_head_req_val = st.number_input(
+                        "مساعد رئيس إلزامي لكل وردية (0 = لا يوجد)",
+                        min_value=0,
+                        value=user_settings[name]['required_assistant_heads'],
+                        step=1,
+                        key=f"all_asst_head_req_{name}_{i}"
+                    )
+                    
+                    # --- بقية المدخلات (معيار، تغطية، نسبة/وقت/حافلات) ---
+                    criterion_options = ['المتواجدين (حجم)', 'التدفق اليومي (حركة)']
+                    criterion_choice_text = st.radio(
+                        "المعيار",
+                        options=criterion_options,
+                        index=0 if user_settings[name]['criterion'] == 'Present' else 1,
+                        key=f"all_crit_{name}_{i}"
+                    )
+                    
+                    if dept_type in ['Ratio', 'Time']:
+                        coverage_val = st.number_input(
+                            "نسبة تغطية (%)",
+                            min_value=0, max_value=100,
+                            value=int(user_settings[name]['coverage'] * 100),
                             step=1,
-                            key=f"all_asst_head_req_{name}_{i}"
+                            key=f"all_cov_{name}_{i}"
                         )
-                        
-                        # --- بقية المدخلات (معيار، تغطية، نسبة/وقت/حافلات) ---
-                        criterion_options = ['المتواجدين (حجم)', 'التدفق اليومي (حركة)']
-                        criterion_choice_text = st.radio(
-                            "المعيار",
-                            options=criterion_options,
-                            index=0 if user_settings[name]['criterion'] == 'Present' else 1,
-                            key=f"all_crit_{name}_{i}"
-                        )
-                        
-                        if dept_type in ['Ratio', 'Time']:
-                            coverage_val = st.number_input(
-                                "نسبة تغطية (%)",
-                                min_value=0, max_value=100,
-                                value=int(user_settings[name]['coverage'] * 100),
-                                step=1,
-                                key=f"all_cov_{name}_{i}"
-                            )
 
-                        if dept_type == 'Ratio':
-                            ratio_val = st.number_input("المعيار (وحدة/موظف)", min_value=1, value=user_settings[name]['ratio'], key=f"all_ratio_{name}_{i}")
-                            
-                        elif dept_type == 'Time':
-                            time_val = st.number_input("المعيار (دقيقة/وحدة)", min_value=0.5, value=user_settings[name]['time'], step=0.1, key=f"all_time_{name}_{i}")
-                            multiplier_val = st.number_input("معامل أحداث الحاج (x)", min_value=1, value=user_settings[name]['events_multiplier'], key=f"all_mult_{name}_{i}")
-                            
-                        elif dept_type == 'Bus_Ratio':
-                            bus_count_val = st.number_input("عدد الحافلات المتوقع", min_value=1, value=user_settings[name]['bus_count'], key=f"all_bus_count_{name}_{i}")
-                            bus_ratio_val = st.number_input("المعيار (حافلة/موظف)", min_value=1, value=user_settings[name]['ratio'], key=f"all_bus_ratio_{name}_{i}")
+                    if dept_type == 'Ratio':
+                        ratio_val = st.number_input("المعيار (وحدة/موظف)", min_value=1, value=user_settings[name]['ratio'], key=f"all_ratio_{name}_{i}")
+                        
+                    elif dept_type == 'Time':
+                        time_val = st.number_input("المعيار (دقيقة/وحدة)", min_value=0.5, value=user_settings[name]['time'], step=0.1, key=f"all_time_{name}_{i}")
+                        multiplier_val = st.number_input("معامل أحداث الحاج (x)", min_value=1, value=user_settings[name]['events_multiplier'], key=f"all_mult_{name}_{i}")
+                        
+                    elif dept_type == 'Bus_Ratio':
+                        bus_count_val = st.number_input("عدد الحافلات المتوقع", min_value=1, value=user_settings[name]['bus_count'], key=f"all_bus_count_{name}_{i}")
+                        bus_ratio_val = st.number_input("المعيار (حافلة/موظف)", min_value=1, value=user_settings[name]['ratio'], key=f"all_bus_ratio_{name}_{i}")
                             
             st.markdown('</div>', unsafe_allow_html=True) # إغلاق وسم الـ div للقسم الرئيسي
         
@@ -859,28 +858,27 @@ def app():
     
     # 1. تهيئة الحالة الافتراضية (Session State)
     if 'current_page' not in st.session_state:
-        st.session_state['current_page'] = 'all' # ابدأ بالشاشة الموحدة
+        st.session_state['current_page'] = 'all'
     if 'next_center_id' not in st.session_state:
         st.session_state['next_center_id'] = 1
     if 'dynamic_hospitality_centers' not in st.session_state:
         st.session_state['dynamic_hospitality_centers'] = []
     
-    # تهيئة جميع قيم المدخلات في الشريط الجانبي (التعديل للقيم الثابتة)
+    # تهيئة جميع قيم المدخلات في الشريط الجانبي
     if 'num_hajjaj_present' not in st.session_state:
         st.session_state['num_hajjaj_present'] = 100000
     if 'num_hajjaj_flow' not in st.session_state:
         st.session_state['num_hajjaj_flow'] = 50000
     if 'service_days' not in st.session_state:
-        st.session_state['service_days'] = 8 # قيمة افتراضية جديدة
+        st.session_state['service_days'] = 8
         
-    # **تثبيت قيم ساعات العمل والورديات**
-    st.session_state['staff_hours'] = 8 # ثابت
-    st.session_state['shifts_count'] = 3 # ثابت
+    st.session_state['staff_hours'] = 8
+    st.session_state['shifts_count'] = 3
     
     if 'reserve_factor_input' not in st.session_state:
-        st.session_state['reserve_factor_input'] = 0 # قيمة افتراضية جديدة
+        st.session_state['reserve_factor_input'] = 0
     if 'ratio_supervisor' not in st.session_state:
-        st.session_state['ratio_supervisor'] = 10 # قيمة افتراضية جديدة
+        st.session_state['ratio_supervisor'] = 10
     if 'ratio_assistant_head' not in st.session_state:
         st.session_state['ratio_assistant_head'] = DEFAULT_HEAD_ASSISTANT_RATIO
     
@@ -936,7 +934,6 @@ def app():
         st.markdown("---")
         st.subheader("معايير الدوام والهيكل")
         
-        # **عرض القيم الثابتة بدلاً من مدخلات**
         st.info(f"**ساعات عمل الموظف اليومية (ثابتة):** {st.session_state['staff_hours']} ساعات")
         st.info(f"**عدد الورديات اليومية المطلوبة (ثابت):** {st.session_state['shifts_count']} ورديات")
         
