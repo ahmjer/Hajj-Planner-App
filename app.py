@@ -52,7 +52,7 @@ TRANSLATION_MAP = {
 }
 
 # -------------------------------------------------------------------
-# 2. الدوال المساعدة للحساب والمنطق
+# 2. الدوال المساعدة للحساب والمنطق (لم تتغير)
 # -------------------------------------------------------------------
 
 def calculate_time_based_staff(total_events, time_per_event_min, service_days, staff_work_hours_day):
@@ -162,7 +162,7 @@ def to_excel_budget(total_staff_per_role, service_days):
     return generate_budget_data(total_staff_per_role, service_days)
 
 # -------------------------------------------------------------------
-# 3. الدوال المساعدة لإدارة المراكز (حل مشكلة RERUN)
+# 3. الدوال المساعدة لإدارة المراكز (مع تعيين علامة التعديل)
 # -------------------------------------------------------------------
 
 def add_hospitality_center():
@@ -211,12 +211,17 @@ def all_departments_page():
     
     # --- إدارة المراكز الديناميكية (خارج النموذج) ---
     st.markdown("#### 🏷️ الضيافة")
-    # استخدام st.form لضمان أن التحديثات الأخرى لا تتأثر
     with st.container():
         st.button("➕ إضافة مركز ضيافة جديد", on_click=add_hospitality_center, type="secondary", key="add_hosp_center_btn")
-        st.markdown("---") # فاصل واضح للقسم
+        st.markdown("---") 
         
-        # نستخدم حاوية لعرض المراكز التي يمكن إدارتها خارج النموذج
+        # 💡 التصحيح الجذري: إذا تم تعديل القائمة، نقوم بإعادة التشغيل ونخرج من الدالة.
+        if st.session_state.get('center_list_modified', False):
+            st.warning("جاري تحديث قائمة المراكز... يرجى الانتظار.")
+            st.session_state['center_list_modified'] = False
+            st.rerun()
+
+        # إذا لم يكن هناك تعديل، نستمر في عرض المراكز
         with st.container(border=True):
             st.markdown("**مراكز الضيافة الديناميكية (إدارة الإغلاق/الفتح وتحديد الحجاج)**")
             
@@ -225,13 +230,10 @@ def all_departments_page():
             for i, center in enumerate(centers_to_display):
                 center_id = center['id']
                 
-                # تثبيت المفتاح (Final Fix for TypeError)
-                # العنوان سيكون بسيطا ويعتمد على ID فقط
                 expander_title_label = f"مركز ضيافة #{center_id}"
-                # المفتاح يعتمد على ID فقط
                 expander_title_key = f"hosp_expander_key_{center_id}"
                 
-                # هذا هو السطر الذي يسبب الخطأ، المفتاح الآن ثابت تماماً
+                # هذا هو السطر الذي يسبب الخطأ
                 with st.expander(expander_title_label, expanded=True, key=expander_title_key): 
                     
                     # عرض الاسم الفعلي للمركز بخط أغمق وفي المنتصف
@@ -242,6 +244,7 @@ def all_departments_page():
                     col_status, col_name, col_hajjaj, col_remove = st.columns([1.5, 3, 2.5, 1])
                     
                     # 1. زر الإغلاق/الفتح (Toggle)
+                    # يجب أن يكون المفتاح مستقرًا أيضاً
                     new_active = col_status.toggle(
                         "مفعل", 
                         value=center.get('active', True), 
@@ -279,13 +282,8 @@ def all_departments_page():
                         key=f"hosp_remove_{center_id}"
                     )
                     col_remove.markdown("</div>", unsafe_allow_html=True)
+
     
-    # 💡 خطوة RERUN الحاسمة: إذا تغيرت قائمة المراكز، أعد التشغيل هنا لتجنب خطأ المفاتيح.
-    if st.session_state.get('center_list_modified', False):
-        st.session_state['center_list_modified'] = False
-        st.rerun()
-
-
     st.markdown("---")
     
     # --- ضبط المعايير العامة ونسبة الضيافة (داخل النموذج) ---
