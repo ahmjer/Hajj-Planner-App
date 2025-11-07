@@ -213,15 +213,17 @@ def all_departments_page():
         for i, center in enumerate(centers_to_display):
             center_id = center['id']
             
-            # 💡 التعديل هنا: تبسيط العنوان في Expander ليكون ID فقط لتجنب تسرب المفاتيح
-            # واستخدام key مخصص مختلف
+            # 💡 التعديل النهائي: العنوان ثابت ويعتمد على ID فقط. التنسيق بالـ CSS سيطبّق عليه.
+            expander_title_label = f"مركز ضيافة #{center_id}"
             expander_title_key = f"hosp_expander_key_{center_id}"
             
-            with st.expander(f"مركز ضيافة #{center_id}", expanded=True, key=expander_title_key): 
+            # استخدام key ثابت فقط
+            with st.expander(expander_title_label, expanded=True, key=expander_title_key): 
                 
-                # 💡 عرض اسم المركز بخط أغمق وفي المنتصف داخل الـ Expander
+                # 💡 عرض الاسم الفعلي للمركز بخط أغمق وفي المنتصف (التعديل النهائي)
                 current_name = st.session_state.get(f"hosp_name_{center_id}", center.get('name', f'مركز ضيافة #{center_id}'))
-                st.markdown(f'<h3 style="text-align: center; font-weight: 700; margin-top: 0; margin-bottom: 20px;">{current_name}</h3>', unsafe_allow_html=True)
+                # نستخدم Markdown لتوفير العنوان المنسق داخل الـ Expander
+                st.markdown(f'<h4 style="text-align: center; font-weight: 700; color: #800020;">{current_name}</h4>', unsafe_allow_html=True)
                 
                 # إبقاء تصميم الأعمدة السابق
                 col_status, col_name, col_hajjaj, col_remove = st.columns([1.5, 3, 2.5, 1])
@@ -619,13 +621,13 @@ p, div, label, span, button, input, textarea, select {
     direction: rtl !important; 
 }
 
-/* 3. تحديد الأوزان (معزز) */
-h1, h2, h3, h4 {
-    font-weight: 400 !important; /* وزن عادي للعناوين */
+/* 3. تطبيق التنسيق على عناوين st.expander لتكون في المنتصف */
+/* يستهدف العنوان الرئيسي لـ expander */
+.st-emotion-cache-p2n4nh { /* هذا الـ class قد يتغير، لكنه يستهدف st.expander label */
+    text-align: center !important; 
 }
-
-p, div, label, span, button {
-    font-weight: 300 !important; /* وزن خفيف للنصوص العادية */
+.st-emotion-cache-p2n4nh > div > div > span { /* يستهدف النص داخل عنوان expander */
+    font-weight: 700 !important;
 }
 
 /* 4. تنسيق المربعات الداخلية للإدارات (خلفية أغمق) */
