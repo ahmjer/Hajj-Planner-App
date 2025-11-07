@@ -394,10 +394,16 @@ def all_departments_page():
     
     # --- إدارة المراكز الديناميكية (خارج النموذج للتعامل مع RERUN) ---
     
-    # القسم الرئيسي الأول: الضيافة (إدارة المراكز والنسبة)
-    with st.container(border=True): # الإطار يحيط بكل قسم الضيافة
+    # استخدام حاوية فريدة لـ CSS (استهدافها بالـ ID: 'hospitality-section-container')
+    with st.container(border=True):
+        st.markdown(
+            """
+            <div id='hospitality-section-container'>
+            """, 
+            unsafe_allow_html=True
+        ) 
         
-        st.markdown("####  مراكز الضيافة")
+        st.markdown("#### 🏷️ الضيافة (إدارة المراكز ومعيار النسبة)")
         
         col_btn, col_info = st.columns([1, 2])
         col_btn.button("➕ إضافة مركز ضيافة جديد", on_click=add_hospitality_center, type="secondary", key="add_hosp_center_btn")
@@ -408,7 +414,7 @@ def all_departments_page():
             # إدارة المراكز (خارج النموذج)
             with st.container(border=False): # حاوية داخلية بدون إطار
                 st.markdown("---")
-                st.markdown("**إدارة المراكز (الإغلاق/الفتح )**")
+                st.markdown("**إدارة المراكز (الإغلاق/الفتح وتحديد الحجاج)**")
                 
                 centers_to_display = st.session_state.dynamic_hospitality_centers[:]
                 
@@ -455,13 +461,20 @@ def all_departments_page():
                         )
         else:
             st.info("لا توجد مراكز ضيافة مُضافة بعد.")
+            
+        st.markdown(
+            """
+            </div>
+            """, 
+            unsafe_allow_html=True
+        ) 
     
     st.markdown("---")
     
     # --- نموذج الاحتساب الموحد (لجمع مدخلات النسب والمعايير) ---
     with st.form("all_dept_criteria_form"):
         
-        # --- 1. نسبة الضيافة (داخل النموذج) ---
+        # --- 1. نسبة الضيافة (داخل النموذج - لكن يتم استهدافها عبر CSS) ---
         with st.container(border=True):
             st.markdown("#### ⚙️ معيار نسبة مقدمي الخدمة لمراكز الضيافة")
             
@@ -873,35 +886,33 @@ def app():
             left: auto;
         }
 
-        /* 3. تصحيح اتجاه الأزرار والنصوص داخل الحاويات والأعمدة */
-        div[data-testid="stForm"] {
+        /* 3. تصحيح اتجاه حقول الإدخال والأعمدة */
+        div[data-testid="stForm"], div[data-testid="stHorizontalBlock"] {
             direction: rtl;
-        }
-        
-        /* تصحيح اتجاه حقول الإدخال والـ radio button */
-        label {
-            width: 100%;
-            text-align: right;
         }
         
         /* تصحيح اتجاه الـ radio buttons */
         div[data-testid="stForm"] > div > div > div > div > div {
-            flex-direction: row-reverse; /* لعكس ترتيب الـ radio button */
-            justify-content: flex-end; /* لمحاذاة العناصر إلى اليمين */
-        }
-        
-        /* تصحيح اتجاه الـ st.columns */
-        div[data-testid="stHorizontalBlock"] {
-            flex-direction: row-reverse;
+            flex-direction: row-reverse; 
+            justify-content: flex-end; 
         }
 
-        /* 4. تخصيص الخلفية للحاويات ذات الإطار */
+        /* 4. تخصيص الخلفية العامة للحاويات ذات الإطار (التي تمثل الإدارات الأخرى) */
         .stContainer[data-st-container-border="true"] {
-            background-color: #f7f7f7; /* رمادي فاتح جداً لتمييز الإطار */
+            background-color: #f7f7f7; /* رمادي فاتح جداً (الخلفية العادية) */
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 25px;
-            border: 1px solid #ddd; /* إضافة حد خفيف وواضح */
+            border: 1px solid #ddd;
+        }
+
+        /* 5. تخصيص خلفية قسم الضيافة (العودي الفاتح) - استهداف عبر الـ ID */
+        #hospitality-section-container {
+            background-color: #F3E5F5 !important; /* لون عودي فاتح (Light Purple/Pink) */
+            padding: 15px; /* الحفاظ على نفس الحشو */
+            border-radius: 8px; /* الحفاظ على نفس انحناء الزوايا */
+            margin: -15px; /* تعويض الحشو الداخلي للحاوية الأم */
+            margin-bottom: 10px;
         }
         
         /* تقليل المسافة العلوية لتقليل الفراغات */
