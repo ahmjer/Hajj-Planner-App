@@ -213,16 +213,16 @@ def all_departments_page():
         for i, center in enumerate(centers_to_display):
             center_id = center['id']
             
-            # 💡 التعديل النهائي: العنوان ثابت ويعتمد على ID فقط. التنسيق بالـ CSS سيطبّق عليه.
-            expander_title_label = f"مركز ضيافة #{center_id}"
+            # 💡 التعديل النهائي لضمان عدم ظهور TypeError: العنوان ثابت ويعتمد على ID فقط.
+            expander_title_label = f"مركز ضيافة #{center_id} (لإعادة التسمية راجع الحقل أدناه)"
             expander_title_key = f"hosp_expander_key_{center_id}"
             
             # استخدام key ثابت فقط
             with st.expander(expander_title_label, expanded=True, key=expander_title_key): 
                 
-                # 💡 عرض الاسم الفعلي للمركز بخط أغمق وفي المنتصف (التعديل النهائي)
+                # 💡 عرض الاسم الفعلي للمركز بخط أغمق وفي المنتصف (لتلبية الطلب)
                 current_name = st.session_state.get(f"hosp_name_{center_id}", center.get('name', f'مركز ضيافة #{center_id}'))
-                # نستخدم Markdown لتوفير العنوان المنسق داخل الـ Expander
+                # نستخدم h4 لتوفير العنوان المنسق داخل الـ Expander
                 st.markdown(f'<h4 style="text-align: center; font-weight: 700; color: #800020;">{current_name}</h4>', unsafe_allow_html=True)
                 
                 # إبقاء تصميم الأعمدة السابق
@@ -621,12 +621,15 @@ p, div, label, span, button, input, textarea, select {
     direction: rtl !important; 
 }
 
-/* 3. تطبيق التنسيق على عناوين st.expander لتكون في المنتصف */
+/* 3. تطبيق التنسيق على عناوين st.expander لتكون في المنتصف وخط غامق */
 /* يستهدف العنوان الرئيسي لـ expander */
-.st-emotion-cache-p2n4nh { /* هذا الـ class قد يتغير، لكنه يستهدف st.expander label */
+/* البحث عن الـ class الذي يحيط بعنوان st.expander */
+.st-emotion-cache-p2n4nh { /* هذا الـ class قد يتغير، لكنه يستهدف st.expander label/header container */
     text-align: center !important; 
 }
-.st-emotion-cache-p2n4nh > div > div > span { /* يستهدف النص داخل عنوان expander */
+
+/* يستهدف النص الفعلي داخل العنوان (للتأثير على الغمق والتوسيط) */
+.st-emotion-cache-p2n4nh > div > div > span { 
     font-weight: 700 !important;
 }
 
