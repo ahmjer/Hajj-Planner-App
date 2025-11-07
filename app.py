@@ -358,7 +358,7 @@ def all_departments_page():
                     )
                     
                     # --- بقية المدخلات (معيار، تغطية، نسبة/وقت/حافلات) ---
-                    criterion_options = ['المتواجدين (حجم)', 'التدفق اليومي (حركة)']
+                    criterion_options = ['المتواجدين (تواجد)', 'التدفق اليومي (حركة)']
                     criterion_choice_text = st.radio(
                         "المعيار",
                         options=criterion_options,
@@ -404,7 +404,7 @@ def all_departments_page():
                 asst_head_key = f"all_asst_head_req_{name}_{i}"
                 user_settings[name]['required_assistant_heads'] = st.session_state[asst_head_key]
 
-                criterion_options = ['المتواجدين (حجم)', 'التدفق اليومي (حركة)']
+                criterion_options = ['المتواجدين (تواجد)', 'التدفق اليومي (حركة)']
                 crit_key = f"all_crit_{name}_{i}"
                 user_settings[name]['criterion'] = 'Present' if st.session_state[crit_key] == criterion_options[0] else 'Flow'
 
@@ -999,7 +999,7 @@ def sidebar_config():
     
     # قسم المدخلات الرئيسية
     with st.sidebar.expander("بيانات الحجاج والخدمة", expanded=True):
-        st.number_input("عدد الحجاج المتواجدين (للحجم)", min_value=1, value=st.session_state['num_hajjaj_present'], step=1000, key="num_hajjaj_present")
+        st.number_input("عدد الحجاج المتواجدين (للتواجد)", min_value=1, value=st.session_state['num_hajjaj_present'], step=1000, key="num_hajjaj_present")
         st.number_input("التدفق اليومي للحجاج (للحركة)", min_value=1, value=st.session_state['num_hajjaj_flow'], step=500, key="num_hajjaj_flow")
         st.number_input("عدد أيام الخدمة الإجمالية", min_value=1, value=st.session_state['service_days'], step=1, key="service_days")
         st.number_input("ساعات عمل الموظف اليومية", min_value=1, max_value=12, value=st.session_state['staff_hours'], step=1, key="staff_hours")
