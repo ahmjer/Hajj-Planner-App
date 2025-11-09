@@ -295,17 +295,24 @@ def main_page_logic():
     st.subheader(f"⚙️ معايير الاحتساب لـ **{selected_department_name}**")
     
     with st.form("main_criteria_form"):
+        # تم تقسيم الأعمدة للحقول المشتركة فقط
         col1, col2, col3 = st.columns(3)
 
         # مساعد رئيس إلزامي
-        # يتم عرض الخانة ولكن سيتم تجاوز قيمتها لاحقاً إذا كانت الإدارة من "الإدارات المساندة"
-        settings['required_assistant_heads'] = col1.number_input(
-            "مساعد رئيس إلزامي لكل وردية (0 = لا يوجد)",
-            min_value=0,
-            value=settings['required_assistant_heads'],
-            step=1,
-            key=f"main_asst_head_req_{selected_department_name}"
-        )
+        # --- تم التعديل: إظهار الحقل فقط للإدارات التي ليست "إدارات مساندة" ---
+        if selected_category != "الإدارات المساندة":
+            settings['required_assistant_heads'] = col1.number_input(
+                "مساعد رئيس إلزامي لكل وردية (0 = لا يوجد)",
+                min_value=0,
+                value=settings['required_assistant_heads'],
+                step=1,
+                key=f"main_asst_head_req_{selected_department_name}"
+            )
+        else:
+             # التأكد من أن القيمة صفر عند إخفاء الحقل
+            settings['required_assistant_heads'] = 0 
+            col1.empty() # مسح العمود لعدم عرض أي شيء فيه
+        # --- نهاية التعديل ---
 
         # المعيار
         if dept_type != 'Manual_HR': # لا حاجة لمعيار وتغطية لـ Manual_HR
@@ -333,7 +340,7 @@ def main_page_logic():
         
         # النسبة أو الوقت أو الحافلات
         if dept_type == 'Ratio':
-            settings['ratio'] = st.number_input("المعيار (وحدة/موظف)", min_value=1, value=settings['ratio'], key=f"main_ratio_{selected_department_name}")
+            st.number_input("المعيار (وحدة/موظف)", min_value=1, value=settings['ratio'], key=f"main_ratio_{selected_department_name}")
             
         elif dept_type == 'Time':
             col_t1, col_t2 = st.columns(2)
@@ -349,9 +356,9 @@ def main_page_logic():
         elif dept_type == 'Manual_HR':
             st.markdown("---")
             st.markdown("**إدخال يدوي للقوى العاملة**")
-            col_m1, col_m2, col_m3 = st.columns(3) # تم إضافة عمود ثالث
-
-            settings['manager_count'] = col_m1.number_input(
+            # --- تم التعديل: إزالة الأعمدة وترتيب الحقول عمودياً (مدير، مشرف إداري، اداري) ---
+            
+            settings['manager_count'] = st.number_input(
                 "عدد **مدير** مطلوب",
                 min_value=0, 
                 value=settings.get('manager_count', dept_info.get('default_manager_count', 1)),
@@ -359,20 +366,21 @@ def main_page_logic():
                 key=f"main_manager_count_{selected_department_name}"
             )
             # NEW: مشرف إداري
-            settings['admin_supervisor_count'] = col_m2.number_input(
+            settings['admin_supervisor_count'] = st.number_input(
                 "عدد **مشرف إداري** مطلوب",
                 min_value=0, 
                 value=settings.get('admin_supervisor_count', dept_info.get('default_admin_supervisor_count', 1)),
                 step=1,
                 key=f"main_admin_supervisor_count_{selected_department_name}"
             )
-            settings['admin_count'] = col_m3.number_input(
+            settings['admin_count'] = st.number_input(
                 "عدد **اداري** مطلوب",
                 min_value=0, 
                 value=settings.get('admin_count', dept_info.get('default_admin_count', 2)),
                 step=1,
                 key=f"main_admin_count_{selected_department_name}"
             )
+            # --- نهاية التعديل ---
 
 
         calculate_button = st.form_submit_button("🔄 احتساب وعرض النتائج الفردية", type="primary")
@@ -785,23 +793,17 @@ def all_departments_page():
                 with col.container(border=True):
                     st.markdown(f"***_{name}_***")
 
-                    # لا يوجد حقل "مساعد رئيس إلزامي" حيث سيتم تجاوز قيمته إلى صفر
-                    asst_head_req_val = st.number_input(
-                        "مساعد رئيس إلزامي لكل وردية (هذا الإدخال **ملغى** في هذا القسم)",
-                        min_value=0,
-                        value=user_settings[name]['required_assistant_heads'],
-                        step=1,
-                        key=f"all_asst_head_req_{name}_{i}{suffix_aux}",
-                        disabled=True
-                    )
+                    # --- تم التعديل: إزالة حقل مساعد رئيس من الإدارات المساندة ---
+                    # asst_head_req_val (تمت إزالته)
+                    # ------------------------------------------------------------------------
                     
                     # NEW: إدخال يدوي للقوى العاملة (مطبق على كل الإدارات في هذا القسم)
                     if dept_type == 'Manual_HR':
                         st.markdown("---")
                         st.markdown("**إدخال يدوي للقوى العاملة**")
-                        col_m1_hr, col_m2_hr, col_m3_hr = st.columns(3) # تم إضافة عمود ثالث
+                        # --- تم التعديل: إزالة الأعمدة وعرض الحقول بترتيب عمودي ---
                         
-                        manager_count_val = col_m1_hr.number_input(
+                        manager_count_val = st.number_input(
                             "عدد **مدير** مطلوب",
                             min_value=0, 
                             value=user_settings[name].get('manager_count', dept.get('default_manager_count', 1)),
@@ -809,7 +811,7 @@ def all_departments_page():
                             key=f"all_manager_count_{name}_{i}{suffix_aux}"
                         )
                         # NEW: مشرف إداري
-                        admin_supervisor_count_val = col_m2_hr.number_input(
+                        admin_supervisor_count_val = st.number_input(
                             "عدد **مشرف إداري** مطلوب",
                             min_value=0, 
                             value=user_settings[name].get('admin_supervisor_count', dept.get('default_admin_supervisor_count', 1)),
@@ -817,13 +819,14 @@ def all_departments_page():
                             key=f"all_admin_supervisor_count_{name}_{i}{suffix_aux}"
                         )
 
-                        admin_count_val = col_m3_hr.number_input(
+                        admin_count_val = st.number_input(
                             "عدد **اداري** مطلوب",
                             min_value=0, 
                             value=user_settings[name].get('admin_count', dept.get('default_admin_count', 2)),
                             step=1,
                             key=f"all_admin_count_{name}_{i}{suffix_aux}"
                         )
+                        # --- نهاية التعديل ---
                         st.markdown("---")
 
         calculate_button = st.form_submit_button("🔄 احتساب وعرض النتائج الموحدة", type="primary")
@@ -850,11 +853,14 @@ def all_departments_page():
                 elif category_name == "الإدارات المساندة":
                     suffix = "_aux"
 
-                asst_head_key = f"all_asst_head_req_{name}_{i}{suffix}"
-                
-                # تحديث قيمة مساعد الرئيس من الحقل (ستتم معالجتها لاحقاً لـ "الإدارات المساندة")
-                user_settings[name]['required_assistant_heads'] = st.session_state.get(asst_head_key, 0)
-                
+                # تحديث قيمة مساعد الرئيس من الحقل (فقط إذا كان الحقل موجوداً لغير الإدارات المساندة)
+                if category_name != "الإدارات المساندة":
+                    asst_head_key = f"all_asst_head_req_{name}_{i}{suffix}"
+                    user_settings[name]['required_assistant_heads'] = st.session_state.get(asst_head_key, 0)
+                else:
+                    user_settings[name]['required_assistant_heads'] = 0
+
+
                 if dept_type != 'Manual_HR':
                     # تحديث معايير النسبة والوقت وغيرها
                     user_settings[name]['criterion'] = 'Present' if st.session_state[f"all_crit_{name}_{i}{suffix}"] == 'المتواجدين (حجم)' else 'Flow'
