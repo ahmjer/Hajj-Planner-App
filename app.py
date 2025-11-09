@@ -3,7 +3,6 @@ import math
 import pandas as pd
 from io import BytesIO
 import os
-import base64
 import graphviz as gv 
 
 # -------------------------------------------------------------------
@@ -267,49 +266,7 @@ def landing_page():
     
     col1, col2 = st.columns(2)
     
-    # إضافة CSS لتأثير الخلفية هنا
-    logo_path = "logo.png"
-    if os.path.exists(logo_path):
-        try:
-            with open(logo_path, "rb") as f:
-                logo_base64 = base64.b64encode(f.read()).decode('utf-8')
-        except Exception as e:
-            st.warning(f"⚠️ فشل ترميز الشعار للخلفية. تأكد من أن الملف 'logo.png' موجود وصيغته صحيحة.")
-            logo_base64 = None
-
-        if logo_base64:
-            st.markdown(
-                f"""
-                <style>
-                .stApp {{
-                    background-image: url("data:image/png;base64,{logo_base64}");
-                    background-size: 500px; 
-                    background-repeat: no-repeat;
-                    background-position: center 30%; 
-                    background-attachment: fixed;
-                }}
-                
-                .stApp::before {{
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    right: 0;
-                    bottom: 0;
-                    left: 0;
-                    opacity: 0.1; 
-                    background-color: transparent;
-                    z-index: -1;
-                }}
-                
-                /* التأكد من أن الخلفية لا تظهر في الصفحات الأخرى */
-                [data-current-page="landing"] {{
-                    /* هذا التحديد لا يعمل حاليًا بشكل مباشر في Streamlit لكن تم إضافته كنية */
-                }}
-                </style>
-                """,
-                unsafe_allow_html=True
-            )
-
+    # ⬆️ تم إزالة كتلة الكود الخاصة بجعل الشعار خلفية من هنا ⬆️
     
     with col1:
         st.info("🔢 **الاحتساب الفردي للإدارات**")
@@ -1215,7 +1172,7 @@ def app():
         
         st.title(" الإعدادات العامة")
         
-        # **تم تصحيح الخطأ هنا: on_on_click إلى on_click**
+        # تم تصحيح الخطأ: on_on_click إلى on_click
         st.button("🏠 العودة لصفحة الاختيار الرئيسية", on_click=switch_to_landing, use_container_width=True)
         
         st.markdown("---")
