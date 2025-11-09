@@ -172,12 +172,46 @@ def switch_to_landing():
 # 3. واجهة البداية (Landing Page Logic - NEW)
 # -------------------------------------------------------------------
 def landing_page():
-    st.title("🏡 نظام تخطيط القوى العاملة")
+    # **تغيير العنوان إلى "الشاشة الرئيسية"**
+    st.title("🏠 الشاشة الرئيسية")
     st.markdown("---")
 
     st.header("اختر نوع الاحتساب:")
     
     col1, col2 = st.columns(2)
+    
+    # إضافة CSS لتأثير الخلفية هنا
+    if os.path.exists("logo.png"):
+        logo_base64 = open("logo.png", "rb").read().encode("base64").decode()
+        # **NEW: CSS لإضافة الشعار كخلفية باهتة للصفحة الرئيسية فقط**
+        st.markdown(
+            f"""
+            <style>
+            .stApp {{
+                background-image: url("data:image/png;base64,{logo_base64}");
+                background-size: 500px; /* حجم الشعار */
+                background-repeat: no-repeat;
+                background-position: center 30%; /* موضع الشعار في المنتصف */
+                background-attachment: fixed;
+            }}
+            
+            /* تأثير التظليل/الشفافية على الشعار للخلفية */
+            .stApp::before {{
+                content: '';
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                left: 0;
+                opacity: 0.1; /* درجة الشفافية */
+                background-color: transparent;
+                z-index: -1;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+
     
     with col1:
         st.info("🔢 **الاحتساب الفردي للإدارات**")
@@ -925,6 +959,7 @@ def app():
     )
     
     # 🌟 حقن CSS لـ RTL وتخصيص الخلفية والإطارات 🌟
+    # **ملاحظة:** تم نقل CSS خلفية الشعار للصفحة الرئيسية إلى دالة `landing_page()`
     st.markdown("""
         <style>
         /* 1. جعل اتجاه الصفحة بالكامل من اليمين لليسار */
