@@ -4,7 +4,7 @@ import pandas as pd
 from io import BytesIO
 import os
 import base64
-import graphviz as gv # ⬅️ تم إضافة مكتبة graphviz لإنشاء الهيكل التنظيمي
+import graphviz as gv 
 
 # -------------------------------------------------------------------
 # 1. الثوابت العامة (Constants)
@@ -18,7 +18,7 @@ DEFAULT_HEAD_ASSISTANT_RATIO = 1
 DEFAULT_SALARY = {
     "رئيس": 37000,
     "مساعد رئيس": 30000,
-    "مشرف فترة": 25000, # تم التعديل
+    "مشرف فترة": 25000, 
     "مقدم خدمة": 8500,
 }
 
@@ -78,27 +78,19 @@ def distribute_staff(total_basic_staff, shifts, required_assistant_heads=0):
         head = 0
         total_supervisors = 0
         assistant_head = 0
-        distribution_by_shift = [0] * shifts  # تهيئة التوزيع (في حالة الصفر)
+        distribution_by_shift = [0] * shifts 
     else:
-        head = 1 # رئيس واحد لكل قسم
-        # مشرف فترة ثابت: 1 لكل وردية (SUPERVISORS_PER_SHIFT * shifts)
+        head = 1 
         total_supervisors = SUPERVISORS_PER_SHIFT * shifts 
-        # مساعد رئيس بناءً على الإلزام لكل وردية
         assistant_head = required_assistant_heads * shifts
         
         # 2. تطبيق منطق التوزيع على مقدمي الخدمة (مقدم خدمة)
-        
-        # عدد الموظفين في كل وردية بالتساوي (الجزء الصحيح)
         base_per_shift = service_provider // shifts 
-        # عدد الورديات التي ستحتوي على موظف إضافي (باقي القسمة)
         remainder = service_provider % shifts
         
         distribution_by_shift = [base_per_shift] * shifts
         
-        # توزيع الزيادة (remainder) على الورديات الأولى 
-        # هذا يضمن أن الوردية الأخيرة (مثل الثالثة) تحصل على العدد الأقل في حال وجود باقي قسمة.
         for i in range(remainder):
-            # نزيد عدد موظفي الوردية (i) بمقدار 1
             distribution_by_shift[i] += 1 
             
     return {
@@ -106,14 +98,13 @@ def distribute_staff(total_basic_staff, shifts, required_assistant_heads=0):
         "Assistant_Head": assistant_head,
         "Field_Supervisor": total_supervisors,
         "Service_Provider": service_provider,
-        # إضافة تفاصيل التوزيع الجديدة
         "Service_Provider_Distribution": distribution_by_shift 
     }
 # 🌟🌟🌟 نهاية الدالة المعدلة 🌟🌟🌟
 
 
 # -------------------------------------------------------------------
-# 3. دالة توليد الهيكل التنظيمي (جديدة)
+# 3. دالة توليد الهيكل التنظيمي 
 # -------------------------------------------------------------------
 
 def generate_org_chart(all_results):
@@ -121,8 +112,8 @@ def generate_org_chart(all_results):
     dot = gv.Digraph(
         comment='الهيكل التنظيمي للمشروع',
         graph_attr={
-            'rankdir': 'TB', # الترتيب من أعلى لأسفل (Top to Bottom)
-            'splines': 'ortho', # خطوط مستقيمة
+            'rankdir': 'TB', 
+            'splines': 'ortho', 
             'bgcolor': 'white',
             'fontname': 'Arial',
             'nodesep': '0.5',
@@ -147,7 +138,7 @@ def generate_org_chart(all_results):
             head_count = entry.get('رئيس', 0)
             head_label = f"رئيس إدارة {dept_name}\n(العدد: {head_count})"
             dot.node(f"Head_{dept_id}", head_label, fillcolor='#FFD700', tooltip=f"القسم: {entry.get('القسم')}")
-            dot.edge('ProjectHead', f"Head_{dept_id}") # ربط القيادة العامة برئيس الإدارة
+            dot.edge('ProjectHead', f"Head_{dept_id}") 
 
             current_parent_id = f"Head_{dept_id}"
             
@@ -182,7 +173,7 @@ def generate_org_chart(all_results):
     return dot
 
 # -------------------------------------------------------------------
-# 4. دوال مساعدة أخرى (كما هي في الكود المرجعي)
+# 4. دوال مساعدة أخرى 
 # -------------------------------------------------------------------
 
 def to_excel(df):
@@ -269,7 +260,6 @@ def switch_to_landing():
 # 5. واجهة البداية (Landing Page Logic)
 # -------------------------------------------------------------------
 def landing_page():
-    # **تغيير العنوان إلى "الشاشة الرئيسية"**
     st.title("🏠 الشاشة الرئيسية")
     st.markdown("---")
 
@@ -281,28 +271,23 @@ def landing_page():
     if os.path.exists("logo.png"):
         try:
             with open("logo.png", "rb") as f:
-                # **تصحيح: استخدام مكتبة base64 لترميز صورة الخلفية**
                 logo_base64 = base64.b64encode(f.read()).decode('utf-8')
         except Exception as e:
-            # يمكن عرض رسالة تحذير للمستخدم أو تسجيل الخطأ
             st.warning(f"⚠️ فشل ترميز الشعار للخلفية. تأكد من أن الملف 'logo.png' موجود وصيغته صحيحة.")
             logo_base64 = None
 
         if logo_base64:
-            # **NEW: CSS لإضافة الشعار كخلفية باهتة للصفحة الرئيسية فقط**
             st.markdown(
                 f"""
                 <style>
-                /* يجب أن يكون هذا التغيير محدداً للصفحة الرئيسية فقط لضمان عمل الصفحة الأخرى بشكل صحيح */
                 .stApp {{
                     background-image: url("data:image/png;base64,{logo_base64}");
-                    background-size: 500px; /* حجم الشعار */
+                    background-size: 500px; 
                     background-repeat: no-repeat;
-                    background-position: center 30%; /* موضع الشعار في المنتصف */
+                    background-position: center 30%; 
                     background-attachment: fixed;
                 }}
                 
-                /* تأثير التظليل/الشفافية على الشعار للخلفية */
                 .stApp::before {{
                     content: '';
                     position: absolute;
@@ -310,12 +295,11 @@ def landing_page():
                     right: 0;
                     bottom: 0;
                     left: 0;
-                    opacity: 0.1; /* درجة الشفافية */
+                    opacity: 0.1; 
                     background-color: transparent;
                     z-index: -1;
                 }}
                 
-                /* إزالة الخلفية المطبقة سابقاً على .stApp في الصفحات الأخرى */
                 .stApp:not([data-current-page="landing"]) {{
                     background-image: none !important;
                 }}
@@ -592,7 +576,7 @@ def all_departments_page():
     # --- إدارة المراكز الديناميكية (خارج النموذج للتعامل مع RERUN) ---
     
     # القسم الرئيسي الأول: الضيافة (إدارة المراكز والنسبة)
-    with st.container(border=True): # الإطار يحيط بكل قسم الضيافة
+    with st.container(border=True): 
         
         st.markdown("####  مراكز الضيافة ")
         
@@ -602,8 +586,8 @@ def all_departments_page():
 
         if st.session_state.dynamic_hospitality_centers:
             
-            # إدارة المراكز (خارج النموذج)
-            with st.container(border=False): # حاوية داخلية بدون إطار
+            # إدارة المراكز 
+            with st.container(border=False): 
                 st.markdown("---")
                 st.markdown("**إدارة المراكز (الإغلاق/الفتح )**")
                 
@@ -683,7 +667,7 @@ def all_departments_page():
         st.markdown("---")
         
         # --- 2. قسم الوصول والمغادرة ---
-        with st.container(border=True): # الإطار الثاني
+        with st.container(border=True): 
             st.markdown("#### 🏷️ الوصول والمغادرة")
             st.markdown("---")
             
@@ -752,7 +736,7 @@ def all_departments_page():
         st.markdown("---")
         
         # --- 3. قسم الدعم والمساندة ---
-        with st.container(border=True): # الإطار الثالث
+        with st.container(border=True): 
             st.markdown("#### 🏷️ الدعم والمساندة")
             st.markdown("---")
             
@@ -1010,7 +994,7 @@ def all_departments_page():
         
         st.dataframe(df, use_container_width=True)
         
-        # 🌟🌟🌟 5. الهيكل التنظيمي التقديري (إضافة جديدة) 🌟🌟🌟
+        # 🌟🌟🌟 5. الهيكل التنظيمي التقديري (تحديث صيغ التصدير) 🌟🌟🌟
         st.subheader("3. الهيكل التنظيمي التقديري")
         
         # توليد المخطط
@@ -1020,23 +1004,58 @@ def all_departments_page():
         try:
             st.graphviz_chart(org_chart)
             
-            # زر تحميل المخطط
-            chart_source = org_chart.source # الحصول على مصدر DOT
-            st.download_button(
-                label="📥 تحميل ملف الهيكل التنظيمي (DOT)",
+            # --- إضافة أزرار التحميل الجديدة في أعمدة متباعدة (3 أعمدة متساوية) ---
+            download_cols = st.columns(3) 
+            
+            # 1. توليد بيانات الصور 
+            png_output = org_chart.pipe(format='png')
+            svg_output = org_chart.pipe(format='svg')
+            chart_source = org_chart.source # DOT source
+            
+            # 2. وضع الأزرار في الأعمدة
+            
+            # تحميل PNG (العمود الأول)
+            download_cols[0].download_button(
+                label="🖼️ تحميل صورة PNG",
+                data=png_output,
+                file_name='الهيكل_التنظيمي_التقديري.png',
+                mime='image/png',
+                use_container_width=True, 
+                type="primary",
+            )
+            
+            # تحميل SVG (العمود الثاني)
+            download_cols[1].download_button(
+                label="📐 تحميل متجه SVG",
+                data=svg_output,
+                file_name='الهيكل_التنظيمي_التقديري.svg',
+                mime='image/svg+xml',
+                use_container_width=True, 
+                type="primary",
+            )
+
+            # تحميل DOT (العمود الثالث)
+            download_cols[2].download_button(
+                label="📜 تحميل ملف المصدر (DOT)",
                 data=chart_source,
                 file_name='الهيكل_التنظيمي_التقديري.dot',
                 mime='text/plain',
+                use_container_width=True, 
                 type="secondary",
-                help="يمكن فتح ملف DOT في برامج متخصصة مثل Graphviz أو أدوات عبر الإنترنت لعرض الصورة."
+                help="ملف المصدر يتطلب برنامج Graphviz لفتحه أو تعديله."
             )
+            
         except Exception as e:
-            st.error(f"⚠️ حدث خطأ أثناء عرض الهيكل التنظيمي. قد تحتاج إلى التأكد من تثبيت 'graphviz' على جهازك أو بيئة التشغيل.")
-        # 🌟🌟🌟 نهاية إضافة الهيكل التنظيمي 🌟🌟🌟
+            # رسالة خطأ أكثر تفصيلاً 
+            st.error(
+                f"⚠️ حدث خطأ أثناء عرض الهيكل التنظيمي أو توليد صيغ الصور (PNG/SVG). "
+                f"يرجى التأكد من تثبيت حزمة نظام **Graphviz** (مثل: `sudo apt-get install graphviz` أو ما يعادله) على الخادم، بالإضافة إلى مكتبة Python. "
+                f" (الخطأ: {e})"
+            )
+        # 🌟🌟🌟 نهاية تحديث الهيكل التنظيمي 🌟🌟🌟
         
         # 6. تخزين الإجماليات وحساب الميزانية الإجمالية
         
-        # **Calculate and store the total budget**
         total_project_cost = 0
         for role, staff_count in total_staff_per_role.items():
             # Use the translated role name to fetch the salary
@@ -1044,10 +1063,10 @@ def all_departments_page():
             total_project_cost += staff_count * salary_or_reward
             
         st.session_state['total_staff_per_role'] = total_staff_per_role
-        st.session_state['total_budget_needed'] = total_staff_needed # هذا هو العدد الإجمالي مع الاحتياط
-        st.session_state['total_budget_value'] = total_project_cost # هذه هي قيمة الميزانية
+        st.session_state['total_budget_needed'] = total_staff_needed 
+        st.session_state['total_budget_value'] = total_project_cost 
         
-        # 7. التصدير
+        # 7. التصدير (تصدير الجداول)
         service_days = st.session_state['service_days']
         
         col_download, col_budget_btn = st.columns(2)
@@ -1081,10 +1100,8 @@ def all_departments_page():
                 label=f"**المجموع الكلي للقوى العاملة المطلوبة في جميع الأقسام (مع الاحتياط)**",
                 value=f"{total_staff_needed} موظف",
             )
-            # **Display the budget metric**
             st.metric(
                 label="**قيمة الميزانية التقديرية الإجمالية (ريال)**",
-                # تنسيق الرقم بفاصلة للآلاف
                 value=f"{total_project_cost:,} ريال", 
             )
         with col2:
@@ -1106,7 +1123,6 @@ def app():
     )
     
     # 🌟 حقن CSS لـ RTL وتخصيص الخلفية والإطارات 🌟
-    # **ملاحظة:** تم نقل CSS خلفية الشعار للصفحة الرئيسية إلى دالة `landing_page()`
     st.markdown("""
         <style>
         /* 1. جعل اتجاه الصفحة بالكامل من اليمين لليسار */
@@ -1134,8 +1150,8 @@ def app():
         
         /* تصحيح اتجاه الـ radio buttons */
         div[data-testid="stForm"] > div > div > div > div > div {
-            flex-direction: row-reverse; /* لعكس ترتيب الـ radio button */
-            justify-content: flex-end; /* لمحاذاة العناصر إلى اليمين */
+            flex-direction: row-reverse; 
+            justify-content: flex-end; 
         }
         
         /* تصحيح اتجاه الـ st.columns */
@@ -1143,13 +1159,13 @@ def app():
             flex-direction: row-reverse;
         }
 
-        /* 4. تخصيص الخلفية للحاويات ذات الإطار (تم التعديل لتصبح أغمق قليلاً) */
+        /* 4. تخصيص الخلفية للحاويات ذات الإطار */
         .stContainer[data-st-container-border="true"] {
-            background-color: #eeeeee; /* رمادي أغمق قليلاً */
+            background-color: #eeeeee; 
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 25px;
-            border: 1px solid #ccc; /* إطار أغمق قليلاً */
+            border: 1px solid #ccc; 
         }
         
         /* تقليل المسافة العلوية لتقليل الفراغات */
@@ -1159,7 +1175,7 @@ def app():
     
     # 9. تهيئة الحالة الافتراضية (Session State)
     if 'current_page' not in st.session_state:
-        st.session_state['current_page'] = 'landing' # تغيير الصفحة الافتراضية
+        st.session_state['current_page'] = 'landing' 
     if 'next_center_id' not in st.session_state:
         st.session_state['next_center_id'] = 1
         
@@ -1169,7 +1185,6 @@ def app():
     if not st.session_state['dynamic_hospitality_centers']:
         add_hospitality_center(is_default=True)
     
-    # (نحتفظ ببقية تهيئة الـ session state كما هي...)
     if 'num_hajjaj_present' not in st.session_state:
         st.session_state['num_hajjaj_present'] = 15000
     if 'num_hajjaj_flow' not in st.session_state:
@@ -1199,7 +1214,7 @@ def app():
         st.title(" الإعدادات العامة")
         
         # زر العودة للصفحة الرئيسية (Landing Page)
-        st.button("🏠 العودة لصفحة الاختيار الرئيسية", on_click=switch_to_landing, use_container_width=True)
+        st.button("🏠 العودة لصفحة الاختيار الرئيسية", on_on_click=switch_to_landing, use_container_width=True)
         
         st.markdown("---")
         
@@ -1235,11 +1250,10 @@ def app():
             
             st.markdown("---")
             
-            st.subheader("متوسط المكافآت") # تم التعديل
+            st.subheader("متوسط المكافآت") 
             
             for role, default_salary in DEFAULT_SALARY.items():
                 key = f'salary_{role}'
-                # التأكد من استخدام المسمى الجديد للمشرف في العرض
                 display_role = "مشرف فترة" if role == "مشرف فترة" else role
                 st.number_input(
                     f"مكافأة **{display_role}** (ريال)",
