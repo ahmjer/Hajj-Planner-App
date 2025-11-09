@@ -35,6 +35,15 @@ DEPARTMENTS = {
         {"name": "الزيارة وإرشاد التأهيين ", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Flow'},
         {"name": " الدعم والضيافة", "type": "Time", "default_time": 5.0, "default_coverage": 100, "default_criterion": 'Present'},
         {"name": "الرعاية صحية", "type": "Ratio", "default_ratio": 1500, "default_coverage": 100, "default_criterion": 'Present'},
+    ],
+    # القسم الجديد - الإدارات المساندة (تمت الإضافة)
+    "الإدارات المساندة": [
+        {"name": "الصيانة", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
+        {"name": "الدعم الفني", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
+        {"name": "الموارد البشرية", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
+        {"name": "الجودة", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
+        {"name": "السكرتارية", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
+        {"name": "التواصل المؤسسي", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
     ]
 }
 
@@ -663,6 +672,77 @@ def all_departments_page():
                     elif dept_type == 'Bus_Ratio':
                         bus_count_val = st.number_input("عدد الحافلات المتوقع", min_value=1, value=user_settings[name]['bus_count'], key=f"all_bus_count_{name}_{i}_support")
                         bus_ratio_val = st.number_input("المعيار (حافلة/موظف)", min_value=1, value=user_settings[name]['ratio'], key=f"all_bus_ratio_{name}_{i}_support")
+        
+        st.markdown("---")
+        
+        # --- 4. قسم الإدارات المساندة (NEW) ---
+        with st.container(border=True):
+            st.markdown("#### ⚙️ الإدارات المساندة")
+            st.markdown("---")
+
+            depts = DEPARTMENTS["الإدارات المساندة"]
+            cols = st.columns(3)
+            col_index = 0
+            
+            # استخدام suffix_aux لتجنب تداخل المفاتيح
+            suffix_aux = "_aux"
+
+            for i, dept in enumerate(depts):
+                name = dept['name']
+                dept_type = dept['type']
+                col = cols[col_index % 3]
+                col_index += 1
+                
+                # تهيئة الإعدادات الافتراضية
+                if name not in user_settings:
+                    user_settings[name] = {
+                        'criterion': dept.get('default_criterion', 'Present'),
+                        'coverage': dept.get('default_coverage', 100) / 100,
+                        'ratio': dept.get('default_ratio', 1),
+                        'time': dept.get('default_time', 1),
+                        'bus_count': 100,
+                        'events_multiplier': 2,
+                        'required_assistant_heads': 0
+                    }
+                
+                with col.container(border=True):
+                    st.markdown(f"***_{name}_***") 
+                    
+                    asst_head_req_val = st.number_input(
+                        "مساعد رئيس إلزامي لكل وردية (0 = لا يوجد)",
+                        min_value=0,
+                        value=user_settings[name]['required_assistant_heads'],
+                        step=1,
+                        key=f"all_asst_head_req_{name}_{i}{suffix_aux}"
+                    )
+                    
+                    criterion_options = ['المتواجدين (حجم)', 'التدفق اليومي (حركة)']
+                    criterion_choice_text = st.radio(
+                        "المعيار",
+                        options=criterion_options,
+                        index=0 if user_settings[name]['criterion'] == 'Present' else 1,
+                        key=f"all_crit_{name}_{i}{suffix_aux}"
+                    )
+                    
+                    if dept_type in ['Ratio', 'Time']:
+                        coverage_val = st.number_input(
+                            "نسبة تغطية (%)",
+                            min_value=0, max_value=100,
+                            value=int(user_settings[name]['coverage'] * 100),
+                            step=1,
+                            key=f"all_cov_{name}_{i}{suffix_aux}"
+                        )
+
+                    if dept_type == 'Ratio':
+                        ratio_val = st.number_input("المعيار (وحدة/موظف)", min_value=1, value=user_settings[name]['ratio'], key=f"all_ratio_{name}_{i}{suffix_aux}")
+                        
+                    elif dept_type == 'Time':
+                        time_val = st.number_input("المعيار (دقيقة/وحدة)", min_value=0.5, value=user_settings[name]['time'], step=0.1, key=f"all_time_{name}_{i}{suffix_aux}")
+                        multiplier_val = st.number_input("معامل أحداث الحاج (x)", min_value=1, value=user_settings[name]['events_multiplier'], key=f"all_mult_{name}_{i}{suffix_aux}")
+                        
+                    elif dept_type == 'Bus_Ratio':
+                        bus_count_val = st.number_input("عدد الحافلات المتوقع", min_value=1, value=user_settings[name]['bus_count'], key=f"all_bus_count_{name}_{i}{suffix_aux}")
+                        bus_ratio_val = st.number_input("المعيار (حافلة/موظف)", min_value=1, value=user_settings[name]['ratio'], key=f"all_bus_ratio_{name}_{i}{suffix_aux}")
                             
         st.markdown("---")
         calculate_button = st.form_submit_button("🔄 احتساب وعرض النتائج الموحدة", type="primary")
@@ -687,6 +767,9 @@ def all_departments_page():
                 suffix = ""
                 if category_name == "الدعم والمساندة":
                     suffix = "_support"
+                # NEW: Add condition for the new department
+                elif category_name == "الإدارات المساندة":
+                    suffix = "_aux"
 
                 asst_head_key = f"all_asst_head_req_{name}_{i}{suffix}"
                 user_settings[name]['required_assistant_heads'] = st.session_state[asst_head_key]
