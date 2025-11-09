@@ -268,9 +268,10 @@ def landing_page():
     col1, col2 = st.columns(2)
     
     # إضافة CSS لتأثير الخلفية هنا
-    if os.path.exists("logo.png"):
+    logo_path = "logo.png"
+    if os.path.exists(logo_path):
         try:
-            with open("logo.png", "rb") as f:
+            with open(logo_path, "rb") as f:
                 logo_base64 = base64.b64encode(f.read()).decode('utf-8')
         except Exception as e:
             st.warning(f"⚠️ فشل ترميز الشعار للخلفية. تأكد من أن الملف 'logo.png' موجود وصيغته صحيحة.")
@@ -300,8 +301,9 @@ def landing_page():
                     z-index: -1;
                 }}
                 
-                .stApp:not([data-current-page="landing"]) {{
-                    background-image: none !important;
+                /* التأكد من أن الخلفية لا تظهر في الصفحات الأخرى */
+                [data-current-page="landing"] {{
+                    /* هذا التحديد لا يعمل حاليًا بشكل مباشر في Streamlit لكن تم إضافته كنية */
                 }}
                 </style>
                 """,
@@ -1213,8 +1215,8 @@ def app():
         
         st.title(" الإعدادات العامة")
         
-        # زر العودة للصفحة الرئيسية (Landing Page)
-        st.button("🏠 العودة لصفحة الاختيار الرئيسية", on_on_click=switch_to_landing, use_container_width=True)
+        # **تم تصحيح الخطأ هنا: on_on_click إلى on_click**
+        st.button("🏠 العودة لصفحة الاختيار الرئيسية", on_click=switch_to_landing, use_container_width=True)
         
         st.markdown("---")
         
