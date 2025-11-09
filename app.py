@@ -3,6 +3,7 @@ import math
 import pandas as pd
 from io import BytesIO
 import os
+import base64 # ⬅️ تم إضافة مكتبة base64 لمعالجة ترميز الصور
 
 # -------------------------------------------------------------------
 # 1. الثوابت العامة (Constants)
@@ -182,35 +183,50 @@ def landing_page():
     
     # إضافة CSS لتأثير الخلفية هنا
     if os.path.exists("logo.png"):
-        logo_base64 = open("logo.png", "rb").read().encode("base64").decode()
-        # **NEW: CSS لإضافة الشعار كخلفية باهتة للصفحة الرئيسية فقط**
-        st.markdown(
-            f"""
-            <style>
-            .stApp {{
-                background-image: url("data:image/png;base64,{logo_base64}");
-                background-size: 500px; /* حجم الشعار */
-                background-repeat: no-repeat;
-                background-position: center 30%; /* موضع الشعار في المنتصف */
-                background-attachment: fixed;
-            }}
-            
-            /* تأثير التظليل/الشفافية على الشعار للخلفية */
-            .stApp::before {{
-                content: '';
-                position: absolute;
-                top: 0;
-                right: 0;
-                bottom: 0;
-                left: 0;
-                opacity: 0.1; /* درجة الشفافية */
-                background-color: transparent;
-                z-index: -1;
-            }}
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
+        try:
+            with open("logo.png", "rb") as f:
+                # **تصحيح: استخدام مكتبة base64 لترميز صورة الخلفية**
+                logo_base64 = base64.b64encode(f.read()).decode('utf-8')
+        except Exception as e:
+            # يمكن عرض رسالة تحذير للمستخدم أو تسجيل الخطأ
+            st.warning(f"⚠️ فشل ترميز الشعار للخلفية. تأكد من أن الملف 'logo.png' موجود وصيغته صحيحة.")
+            logo_base64 = None
+
+        if logo_base64:
+            # **NEW: CSS لإضافة الشعار كخلفية باهتة للصفحة الرئيسية فقط**
+            st.markdown(
+                f"""
+                <style>
+                /* يجب أن يكون هذا التغيير محدداً للصفحة الرئيسية فقط لضمان عمل الصفحة الأخرى بشكل صحيح */
+                .stApp {{
+                    background-image: url("data:image/png;base64,{logo_base64}");
+                    background-size: 500px; /* حجم الشعار */
+                    background-repeat: no-repeat;
+                    background-position: center 30%; /* موضع الشعار في المنتصف */
+                    background-attachment: fixed;
+                }}
+                
+                /* تأثير التظليل/الشفافية على الشعار للخلفية */
+                .stApp::before {{
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    right: 0;
+                    bottom: 0;
+                    left: 0;
+                    opacity: 0.1; /* درجة الشفافية */
+                    background-color: transparent;
+                    z-index: -1;
+                }}
+                
+                /* إزالة الخلفية المطبقة سابقاً على .stApp في الصفحات الأخرى */
+                .stApp:not([data-current-page="landing"]) {{
+                    background-image: none !important;
+                }}
+                </style>
+                """,
+                unsafe_allow_html=True
+            )
 
     
     with col1:
