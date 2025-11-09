@@ -13,14 +13,15 @@ SUPERVISORS_PER_SHIFT = 1 # مشرف فترة ثابت 1 لكل وردية
 ASSISTANT_HEADS_PER_SHIFT = 1
 DEFAULT_HEAD_ASSISTANT_RATIO = 1
 
-# تم تحديث: إضافة أدوار (مدير) و (اداري)
+# تم التعديل: إضافة دور (مشرف إداري)
 DEFAULT_SALARY = {
     "رئيس": 37000,
     "مساعد رئيس": 30000,
-    "مشرف فترة": 25000, # تم التعديل
+    "مشرف فترة": 25000, 
     "مقدم خدمة": 8500,
-    "مدير": 20000,       # دور جديد
-    "اداري": 12000,      # دور جديد
+    "مدير": 20000,       
+    "مشرف إداري": 15000, # دور جديد
+    "اداري": 12000,      
 }
 
 # تعريف الإدارات
@@ -41,14 +42,13 @@ DEPARTMENTS = {
     ],
     # القسم الجديد - الإدارات المساندة (تمت الإضافة)
     "الإدارات المساندة": [
-        # تم التعديل: تطبيق آلية Manual_HR على جميع الإدارات المساندة الأخرى
-        {"name": "الصيانة", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 2, "default_criterion": 'Present'}, 
-        {"name": "الدعم الفني", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 2, "default_criterion": 'Present'}, 
-        # بقي كما هو (الموارد البشرية)
-        {"name": "الموارد البشرية", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 2, "default_criterion": 'Present'}, 
-        {"name": "الجودة", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 2, "default_criterion": 'Present'}, 
-        {"name": "السكرتارية", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 2, "default_criterion": 'Present'}, 
-        {"name": "التواصل المؤسسي", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 2, "default_criterion": 'Present'},
+        # تم التعديل: إضافة default_admin_supervisor_count
+        {"name": "الصيانة", "type": "Manual_HR", "default_manager_count": 1, "default_admin_supervisor_count": 1, "default_admin_count": 2, "default_criterion": 'Present'}, 
+        {"name": "الدعم الفني", "type": "Manual_HR", "default_manager_count": 1, "default_admin_supervisor_count": 1, "default_admin_count": 2, "default_criterion": 'Present'}, 
+        {"name": "الموارد البشرية", "type": "Manual_HR", "default_manager_count": 1, "default_admin_supervisor_count": 1, "default_admin_count": 2, "default_criterion": 'Present'}, 
+        {"name": "الجودة", "type": "Manual_HR", "default_manager_count": 1, "default_admin_supervisor_count": 1, "default_admin_count": 2, "default_criterion": 'Present'}, 
+        {"name": "السكرتارية", "type": "Manual_HR", "default_manager_count": 1, "default_admin_supervisor_count": 1, "default_admin_count": 2, "default_criterion": 'Present'}, 
+        {"name": "التواصل المؤسسي", "type": "Manual_HR", "default_manager_count": 1, "default_admin_supervisor_count": 1, "default_admin_count": 2, "default_criterion": 'Present'},
     ]
 }
 
@@ -285,6 +285,7 @@ def main_page_logic():
             'required_assistant_heads': 0, 
             # NEW: إضافة الإعدادات الافتراضية للموارد البشرية
             'manager_count': dept_info.get('default_manager_count', 1), 
+            'admin_supervisor_count': dept_info.get('default_admin_supervisor_count', 1), # جديد
             'admin_count': dept_info.get('default_admin_count', 2), 
         }
         
@@ -348,7 +349,8 @@ def main_page_logic():
         elif dept_type == 'Manual_HR':
             st.markdown("---")
             st.markdown("**إدخال يدوي للقوى العاملة**")
-            col_m1, col_m2 = st.columns(2)
+            col_m1, col_m2, col_m3 = st.columns(3) # تم إضافة عمود ثالث
+
             settings['manager_count'] = col_m1.number_input(
                 "عدد **مدير** مطلوب",
                 min_value=0, 
@@ -356,7 +358,15 @@ def main_page_logic():
                 step=1,
                 key=f"main_manager_count_{selected_department_name}"
             )
-            settings['admin_count'] = col_m2.number_input(
+            # NEW: مشرف إداري
+            settings['admin_supervisor_count'] = col_m2.number_input(
+                "عدد **مشرف إداري** مطلوب",
+                min_value=0, 
+                value=settings.get('admin_supervisor_count', dept_info.get('default_admin_supervisor_count', 1)),
+                step=1,
+                key=f"main_admin_supervisor_count_{selected_department_name}"
+            )
+            settings['admin_count'] = col_m3.number_input(
                 "عدد **اداري** مطلوب",
                 min_value=0, 
                 value=settings.get('admin_count', dept_info.get('default_admin_count', 2)),
@@ -425,6 +435,7 @@ def main_page_logic():
         if dept_type == 'Manual_HR':
             staff_breakdown["Service_Provider"] = 0 # إلغاء مقدم الخدمة
             staff_breakdown["مدير"] = settings['manager_count']
+            staff_breakdown["مشرف إداري"] = settings['admin_supervisor_count'] # جديد
             staff_breakdown["اداري"] = settings['admin_count']
         
         # إعادة حساب المجموع الكلي بعد إضافة الأدوار اليدوية
@@ -436,6 +447,7 @@ def main_page_logic():
         # ضمان وجود الأدوار الجديدة في النتائج المترجمة
         if dept_type == 'Manual_HR':
             translated_breakdown['مدير'] = staff_breakdown['مدير']
+            translated_breakdown['مشرف إداري'] = staff_breakdown['مشرف إداري'] # جديد
             translated_breakdown['اداري'] = staff_breakdown['اداري']
             if 'مقدم خدمة' in translated_breakdown:
                 del translated_breakdown['مقدم خدمة']
@@ -764,29 +776,31 @@ def all_departments_page():
                         'events_multiplier': 2,
                         # هذه القيمة سيتم تجاوزها إلى 0 لاحقاً لجميع الإدارات المساندة
                         'required_assistant_heads': 0, 
-                        # NEW: إضافة الإعدادات الافتراضية للموارد البشرية (تم تطبيقها على الجميع)
+                        # NEW: إضافة الإعدادات الافتراضية للموارد البشرية
                         'manager_count': dept.get('default_manager_count', 1), 
+                        'admin_supervisor_count': dept.get('default_admin_supervisor_count', 1), # جديد
                         'admin_count': dept.get('default_admin_count', 2), 
                     }
                     
                 with col.container(border=True):
                     st.markdown(f"***_{name}_***")
 
-                    # لا يوجد حقل "مساعد رئيس إلزامي" حيث سيتم تجاوز قيمته إلى صفر (كما هو مطلوب في النقطة 1)
+                    # لا يوجد حقل "مساعد رئيس إلزامي" حيث سيتم تجاوز قيمته إلى صفر
                     asst_head_req_val = st.number_input(
                         "مساعد رئيس إلزامي لكل وردية (هذا الإدخال **ملغى** في هذا القسم)",
                         min_value=0,
                         value=user_settings[name]['required_assistant_heads'],
                         step=1,
                         key=f"all_asst_head_req_{name}_{i}{suffix_aux}",
-                        disabled=True # قمت بتعطيله لإظهار أن قيمته سيتم تجاوزها لصفر
+                        disabled=True
                     )
                     
-                    # NEW: إدخال يدوي للموارد البشرية (مطبق على كل الإدارات في هذا القسم)
+                    # NEW: إدخال يدوي للقوى العاملة (مطبق على كل الإدارات في هذا القسم)
                     if dept_type == 'Manual_HR':
                         st.markdown("---")
                         st.markdown("**إدخال يدوي للقوى العاملة**")
-                        col_m1_hr, col_m2_hr = st.columns(2)
+                        col_m1_hr, col_m2_hr, col_m3_hr = st.columns(3) # تم إضافة عمود ثالث
+                        
                         manager_count_val = col_m1_hr.number_input(
                             "عدد **مدير** مطلوب",
                             min_value=0, 
@@ -794,7 +808,16 @@ def all_departments_page():
                             step=1,
                             key=f"all_manager_count_{name}_{i}{suffix_aux}"
                         )
-                        admin_count_val = col_m2_hr.number_input(
+                        # NEW: مشرف إداري
+                        admin_supervisor_count_val = col_m2_hr.number_input(
+                            "عدد **مشرف إداري** مطلوب",
+                            min_value=0, 
+                            value=user_settings[name].get('admin_supervisor_count', dept.get('default_admin_supervisor_count', 1)),
+                            step=1,
+                            key=f"all_admin_supervisor_count_{name}_{i}{suffix_aux}"
+                        )
+
+                        admin_count_val = col_m3_hr.number_input(
                             "عدد **اداري** مطلوب",
                             min_value=0, 
                             value=user_settings[name].get('admin_count', dept.get('default_admin_count', 2)),
@@ -849,6 +872,7 @@ def all_departments_page():
                 else: # Manual_HR (للإدارات المساندة)
                     # تحديث قيم المدير والإداري
                     user_settings[name]['manager_count'] = st.session_state[f"all_manager_count_{name}_{i}{suffix}"]
+                    user_settings[name]['admin_supervisor_count'] = st.session_state[f"all_admin_supervisor_count_{name}_{i}{suffix}"] # جديد
                     user_settings[name]['admin_count'] = st.session_state[f"all_admin_count_{name}_{i}{suffix}"]
 
         st.session_state['run_calculation_all'] = True
@@ -963,6 +987,7 @@ def all_departments_page():
             if dept_type == 'Manual_HR':
                 staff_breakdown["Service_Provider"] = 0 # إلغاء مقدم الخدمة
                 staff_breakdown["مدير"] = settings['manager_count']
+                staff_breakdown["مشرف إداري"] = settings['admin_supervisor_count'] # جديد
                 staff_breakdown["اداري"] = settings['admin_count']
 
             total_staff_in_hierarchy = sum(staff_breakdown.values())
@@ -973,6 +998,7 @@ def all_departments_page():
             # ضمان وجود الأدوار الجديدة في النتائج المترجمة (في حالة Manual_HR)
             if dept_type == 'Manual_HR':
                 translated_breakdown['مدير'] = staff_breakdown['مدير']
+                translated_breakdown['مشرف إداري'] = staff_breakdown['مشرف إداري'] # جديد
                 translated_breakdown['اداري'] = staff_breakdown['اداري']
                 if 'مقدم خدمة' in translated_breakdown:
                     del translated_breakdown['مقدم خدمة']
@@ -990,7 +1016,7 @@ def all_departments_page():
 
         # 4. عرض النتائج الموحدة في جدول
         column_order = [
-            "القسم", "رئيس", "مساعد رئيس", "مشرف فترة", "مدير", "اداري", "مقدم خدمة", "المجموع الإجمالي (بالاحتياط)"
+            "القسم", "رئيس", "مساعد رئيس", "مشرف فترة", "مدير", "مشرف إداري", "اداري", "مقدم خدمة", "المجموع الإجمالي (بالاحتياط)"
         ]
         df = pd.DataFrame(all_results)
         df = df.set_index("الإدارة")
