@@ -47,7 +47,7 @@ for category, depts in DEPARTMENTS.items():
 TRANSLATION_MAP = {
     "Head": "رئيس",
     "Assistant_Head": "مساعد رئيس",
-    "Field_Supervisor": "مشرف فترة", # تم التعديل
+    "Field_Supervisor": "مشرف فترة",
     "Service_Provider": "مقدم خدمة",
 }
 
@@ -165,8 +165,47 @@ def switch_to_all():
     st.session_state['current_page'] = 'all'
     st.session_state['run_calculation_all'] = False
 
+def switch_to_landing():
+    st.session_state['current_page'] = 'landing'
+
 # -------------------------------------------------------------------
-# 3. منطق الصفحة الفردية (Main Page Logic - تم تحديثه)
+# 3. واجهة البداية (Landing Page Logic - NEW)
+# -------------------------------------------------------------------
+def landing_page():
+    st.title("🏡 نظام تخطيط القوى العاملة")
+    st.markdown("---")
+
+    st.header("اختر نوع الاحتساب:")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.info("🔢 **الاحتساب الفردي للإدارات**")
+        st.markdown("يسمح لك هذا الوضع بتخصيص معايير وحساب الاحتياج لـ **إدارة فرعية واحدة** بشكل مستقل.")
+        st.button(
+            "⬅️ الانتقال إلى الاحتساب الفردي",
+            on_click=switch_to_main,
+            use_container_width=True,
+            type="secondary"
+        )
+
+    with col2:
+        st.success("📊 **تخطيط القوى العاملة الموحد**")
+        st.markdown("يسمح لك هذا الوضع بتخصيص معايير وحساب الاحتياج لـ **جميع الإدارات** دفعة واحدة (بما في ذلك مراكز الضيافة الديناميكية).")
+        st.button(
+            "⬅️ الانتقال إلى الاحتساب الموحد",
+            on_click=switch_to_all,
+            use_container_width=True,
+            type="primary"
+        )
+    
+    st.markdown("---")
+    st.subheader("إعدادات النظام العامة (في الشريط الجانبي)")
+    st.info("يمكنك تعديل بيانات الحجاج ومدة الخدمة ومتوسط المكافآت من الشريط الجانبي الأيمن.")
+
+
+# -------------------------------------------------------------------
+# 4. منطق الصفحة الفردية (Main Page Logic - تم تحديثه)
 # -------------------------------------------------------------------
 def main_page_logic():
     st.title("🔢 الاحتساب الفردي للإدارات")
@@ -384,7 +423,7 @@ def main_page_logic():
             )
 
 # -------------------------------------------------------------------
-# 4. منطق الشاشة الموحدة (All Departments Page Logic - تم تحديثه)
+# 5. منطق الشاشة الموحدة (All Departments Page Logic)
 # -------------------------------------------------------------------
 
 def all_departments_page():
@@ -804,7 +843,7 @@ def all_departments_page():
         st.subheader("2. جدول الاحتياج الموحد والنتائج")
         
         column_order = [
-            "القسم", "رئيس", "مساعد رئيس", "مشرف فترة", # تم التعديل
+            "القسم", "رئيس", "مساعد رئيس", "مشرف فترة",
             "مقدم خدمة", "المجموع الإجمالي (بالاحتياط)"
         ]
         
@@ -875,7 +914,7 @@ def all_departments_page():
 
 
 # -------------------------------------------------------------------
-# 5. الدالة الرئيسية للتطبيق (Main App Function)
+# 6. الدالة الرئيسية للتطبيق (Main App Function)
 # -------------------------------------------------------------------
 
 def app():
@@ -936,9 +975,9 @@ def app():
         </style>
     """, unsafe_allow_html=True)
     
-    # 6. تهيئة الحالة الافتراضية (Session State)
+    # 7. تهيئة الحالة الافتراضية (Session State)
     if 'current_page' not in st.session_state:
-        st.session_state['current_page'] = 'all'
+        st.session_state['current_page'] = 'landing' # تغيير الصفحة الافتراضية
     if 'next_center_id' not in st.session_state:
         st.session_state['next_center_id'] = 1
         
@@ -966,7 +1005,7 @@ def app():
         if f'salary_{role}' not in st.session_state:
             st.session_state[f'salary_{role}'] = default_salary
 
-    # 7. مدخلات الشريط الجانبي (العامة)
+    # 8. مدخلات الشريط الجانبي (العامة)
     with st.sidebar:
         # **إضافة الشعار هنا**
         logo_path = "logo.png"
@@ -977,70 +1016,61 @@ def app():
         
         st.title(" الإعدادات العامة")
         
-        # أزرار التبديل بين الصفحات
+        # زر العودة للصفحة الرئيسية (Landing Page)
+        st.button("🏠 العودة لصفحة الاختيار الرئيسية", on_click=switch_to_landing, use_container_width=True)
+        
+        st.markdown("---")
+        
+        # يتم عرض الإعدادات العامة فقط عندما لا نكون في صفحة الاختيار
+        if st.session_state['current_page'] != 'landing':
 
-        col_main, col_all = st.columns(2)
-        
-        col_main.button(
-            "حساب فردي",
-            on_click=switch_to_main,
-            disabled=st.session_state['current_page'] == 'main',
-            use_container_width=True
-        )
-        col_all.button(
-            "حساب موحد",
-            on_click=switch_to_all,
-            disabled=st.session_state['current_page'] == 'all',
-            type="primary" if st.session_state['current_page'] == 'all' else "secondary",
-            use_container_width=True
-        )
-        
-        st.markdown("---")
-        st.subheader("البيانات الأساسية")
-        
-        st.number_input(
-            "إجمالي الحجاج/الزوار (المتواجدين)",
-            min_value=1, value=st.session_state['num_hajjaj_present'], step=1000, key="num_hajjaj_present"
-        )
-        st.number_input(
-            "إجمالي الحجاج/الزوار (التدفق اليومي)",
-            min_value=1, value=st.session_state['num_hajjaj_flow'], step=1000, key="num_hajjaj_flow"
-        )
-        st.number_input(
-            "مدة الخدمة (يوم)",
-            min_value=1, value=st.session_state['service_days'], step=1, key="service_days"
-        )
-
-        st.markdown("---")
-        st.subheader("معايير الدوام والهيكل الثابت")
-        
-        st.info(f"**ساعات عمل الموظف اليومية (ثابتة):** {st.session_state['staff_hours']} ساعات")
-        st.info(f"**عدد الورديات اليومية المطلوبة (ثابت):** {st.session_state['shifts_count']} ورديات")
-        st.info(f"**مشرف فترة (ثابت):** {SUPERVISORS_PER_SHIFT} لكل وردية")
-        
-        st.slider(
-            "نسبة الاحتياط الإجمالية (%)",
-            min_value=0, max_value=50, value=st.session_state['reserve_factor_input'], step=1, key="reserve_factor_input"
-        )
-        
-        st.markdown("---")
-        
-        st.subheader("متوسط المكافآت") # تم التعديل
-        
-        for role, default_salary in DEFAULT_SALARY.items():
-            key = f'salary_{role}'
-            # التأكد من استخدام المسمى الجديد للمشرف في العرض
-            display_role = "مشرف فترة" if role == "مشرف فترة" else role
+            st.subheader("البيانات الأساسية")
+            
             st.number_input(
-                f"مكافأة **{display_role}** (ريال)",
-                min_value=1,
-                value=st.session_state[key],
-                step=100,
-                key=key
+                "إجمالي الحجاج/الزوار (المتواجدين)",
+                min_value=1, value=st.session_state['num_hajjaj_present'], step=1000, key="num_hajjaj_present"
             )
+            st.number_input(
+                "إجمالي الحجاج/الزوار (التدفق اليومي)",
+                min_value=1, value=st.session_state['num_hajjaj_flow'], step=1000, key="num_hajjaj_flow"
+            )
+            st.number_input(
+                "مدة الخدمة (يوم)",
+                min_value=1, value=st.session_state['service_days'], step=1, key="service_days"
+            )
+
+            st.markdown("---")
+            st.subheader("معايير الدوام والهيكل الثابت")
+            
+            st.info(f"**ساعات عمل الموظف اليومية (ثابتة):** {st.session_state['staff_hours']} ساعات")
+            st.info(f"**عدد الورديات اليومية المطلوبة (ثابت):** {st.session_state['shifts_count']} ورديات")
+            st.info(f"**مشرف فترة (ثابت):** {SUPERVISORS_PER_SHIFT} لكل وردية")
+            
+            st.slider(
+                "نسبة الاحتياط الإجمالية (%)",
+                min_value=0, max_value=50, value=st.session_state['reserve_factor_input'], step=1, key="reserve_factor_input"
+            )
+            
+            st.markdown("---")
+            
+            st.subheader("متوسط المكافآت") # تم التعديل
+            
+            for role, default_salary in DEFAULT_SALARY.items():
+                key = f'salary_{role}'
+                # التأكد من استخدام المسمى الجديد للمشرف في العرض
+                display_role = "مشرف فترة" if role == "مشرف فترة" else role
+                st.number_input(
+                    f"مكافأة **{display_role}** (ريال)",
+                    min_value=1,
+                    value=st.session_state[key],
+                    step=100,
+                    key=key
+                )
         
-    # 8. عرض الصفحة المختارة
-    if st.session_state['current_page'] == 'main':
+    # 9. عرض الصفحة المختارة
+    if st.session_state['current_page'] == 'landing':
+        landing_page()
+    elif st.session_state['current_page'] == 'main':
         main_page_logic()
     elif st.session_state['current_page'] == 'all':
         all_departments_page()
