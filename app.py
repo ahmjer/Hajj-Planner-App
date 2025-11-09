@@ -847,14 +847,23 @@ def all_departments_page():
             for i, dept in enumerate(depts):
                 name = dept['name']
                 dept_type = dept['type']
+                
+                # ------------------------------------------------------------------------
+                # FIX 1: تصحيح السابقة (Suffix) عند استرجاع قيم النموذج 
+                # هذا يحل مشكلة KeyError لأقسام الوصول والمغادرة (والدعم والمساندة) التي تستخدم "_support"
                 suffix = ""
-                if category_name == "الدعم والمساندة":
+                if category_name == "الوصول والمغادرة": # <--- NEW FIX: Added this line
+                    suffix = "_support"
+                elif category_name == "الدعم والمساندة":
                     suffix = "_support"
                 elif category_name == "الإدارات المساندة":
                     suffix = "_aux"
+                # ------------------------------------------------------------------------
 
                 # تحديث قيمة مساعد الرئيس من الحقل (فقط إذا كان الحقل موجوداً لغير الإدارات المساندة)
                 if category_name != "الإدارات المساندة":
+                    # استخدم المفتاح الذي تم إنشاؤه في نموذج rendering (وهو all_asst_head_req_{name}_{i}_support)
+                    # يجب أن يكون السوفكس صحيحاً هنا أيضاً
                     asst_head_key = f"all_asst_head_req_{name}_{i}{suffix}"
                     user_settings[name]['required_assistant_heads'] = st.session_state.get(asst_head_key, 0)
                 else:
@@ -863,6 +872,7 @@ def all_departments_page():
 
                 if dept_type != 'Manual_HR':
                     # تحديث معايير النسبة والوقت وغيرها
+                    # يجب أن ينجح هذا الآن لأن السابقة (suffix) صحيحة
                     user_settings[name]['criterion'] = 'Present' if st.session_state[f"all_crit_{name}_{i}{suffix}"] == 'المتواجدين (حجم)' else 'Flow'
                     if dept_type in ['Ratio', 'Time']:
                         user_settings[name]['coverage'] = st.session_state[f"all_cov_{name}_{i}{suffix}"] / 100
@@ -877,6 +887,7 @@ def all_departments_page():
                         user_settings[name]['ratio'] = st.session_state[f"all_bus_ratio_{name}_{i}{suffix}"]
                 else: # Manual_HR (للإدارات المساندة)
                     # تحديث قيم المدير والإداري
+                    # هنا نستخدم suffix = "_aux" (والذي تم تعريفه بشكل صحيح)
                     user_settings[name]['manager_count'] = st.session_state[f"all_manager_count_{name}_{i}{suffix}"]
                     user_settings[name]['admin_supervisor_count'] = st.session_state[f"all_admin_supervisor_count_{name}_{i}{suffix}"] # جديد
                     user_settings[name]['admin_count'] = st.session_state[f"all_admin_count_{name}_{i}{suffix}"]
