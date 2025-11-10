@@ -265,8 +265,6 @@ def switch_to_landing():
 def landing_page():
     st.title("🏡 نظام تخطيط القوى العاملة")
     st.markdown("---")
-
-    st.header("اختر نوع الاحتساب:")
     
     col1, col2, col3 = st.columns(3)
     
