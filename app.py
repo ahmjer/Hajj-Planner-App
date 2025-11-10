@@ -799,7 +799,6 @@ def all_departments_page():
                         user_settings[name]['required_assistant_heads'] = asst_head_req_val
                     else:
                         user_settings[name]['required_assistant_heads'] = 0 # إجبار على صفر
-                        st.write("*(لا ينطبق مساعد رئيس)*")
 
 
                     # الإدارات المساندة الآن جميعها Manual_HR
