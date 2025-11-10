@@ -1152,7 +1152,7 @@ def sidebar_ui():
         )
         # *************************************************************
                 
-        st.button("🏠 العودة لصفحة البداية", on_click=switch_to_landing, use_container_width=True, type="secondary")
+        st.button("   الصفحة الرئيسية", on_click=switch_to_landing, use_container_width=True, type="secondary")
         st.markdown("---")
         
         with st.container(border=True): # الإطار الأول
