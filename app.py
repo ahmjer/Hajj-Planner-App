@@ -641,7 +641,7 @@ def all_page_logic():
     
     user_settings = st.session_state['user_settings_all']
     
-    st.subheader("إعداد مراكز الضيافة")
+    st.subheader(" مراكز الضيافة")
     
     # --- إدارة مراكز الضيافة ---
     col_h1, col_h2 = st.columns([0.8, 0.2])
