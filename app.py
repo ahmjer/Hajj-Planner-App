@@ -799,22 +799,23 @@ def all_departments_page():
                         user_settings[name]['required_assistant_heads'] = asst_head_req_val
                     else:
                         user_settings[name]['required_assistant_heads'] = 0 # إجبار على صفر
+                        st.write("*(لا ينطبق مساعد رئيس)*")
 
 
                     # الإدارات المساندة الآن جميعها Manual_HR
                     if dept_type == 'Manual_HR':
                         st.markdown("---")
                         st.markdown("**إدخال يدوي للقوى العاملة**")
-                        col_m1_hr, col_m2_hr = st.columns(2)
                         
-                        manager_count_val = col_m1_hr.number_input(
+                        # تم إزالة st.columns(2) لجعل مربعات الإدخال متوافقة (تظهر تحت بعضها)
+                        manager_count_val = st.number_input(
                             "عدد **مدير** مطلوب",
                             min_value=0, 
                             value=user_settings[name].get('manager_count', dept.get('default_manager_count', 1)),
                             step=1,
                             key=f"all_manager_count_{name}_{i}{suffix_aux}"
                         )
-                        admin_count_val = col_m2_hr.number_input(
+                        admin_count_val = st.number_input(
                             "عدد **اداري** مطلوب",
                             min_value=0, 
                             value=user_settings[name].get('admin_count', dept.get('default_admin_count', 2)),
