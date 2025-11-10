@@ -508,7 +508,7 @@ def all_departments_page():
     user_settings = st.session_state['user_settings_all']
     
     # --- إدارة المراكز الديناميكية (خارج النموذج للتعامل مع RERUN) ---
-    with st.expander("➕ إدارة مراكز الضيافة الديناميكية"):
+    with st.expander("➕ إدارة مراكز الضيافة "):
         st.subheader("إضافة وتعديل مراكز الضيافة")
         st.info("اضغط على 'إضافة مركز جديد' لحساب احتياج الضيافة بشكل منفصل لكل مركز.")
         
