@@ -39,15 +39,14 @@ DEPARTMENTS = {
         {"name": " الدعم والضيافة", "type": "Time", "default_time": 5.0, "default_coverage": 100, "default_criterion": 'Present'},
         {"name": "الرعاية صحية", "type": "Ratio", "default_ratio": 1500, "default_coverage": 100, "default_criterion": 'Present'},
     ],
-    # القسم الجديد - الإدارات المساندة (تمت الإضافة)
+    # القسم الجديد - الإدارات المساندة (تم توحيدها لتصبح Manual_HR وإلغاء مساعد الرئيس)
     "الإدارات المساندة": [
-        {"name": "الصيانة", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
-        {"name": "الدعم الفني", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
-        # تم التحديث: تغيير نوع الاحتساب للموارد البشرية إلى إدخال يدوي
+        {"name": "الصيانة", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 2, "default_criterion": 'Present'},
+        {"name": "الدعم الفني", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 2, "default_criterion": 'Present'},
         {"name": "الموارد البشرية", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 2, "default_criterion": 'Present'}, 
-        {"name": "الجودة", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
-        {"name": "السكرتارية", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
-        {"name": "التواصل المؤسسي", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
+        {"name": "الجودة", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 2, "default_criterion": 'Present'},
+        {"name": "السكرتارية", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 2, "default_criterion": 'Present'},
+        {"name": "التواصل المؤسسي", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 2, "default_criterion": 'Present'},
     ]
 }
 
@@ -92,7 +91,7 @@ def distribute_staff(total_basic_staff, shifts, required_assistant_heads=0):
         head = 1 # رئيس واحد لكل قسم
         # مشرف فترة ثابت: 1 لكل وردية (SUPERVISORS_PER_SHIFT * shifts)
         total_supervisors = SUPERVISORS_PER_SHIFT * shifts 
-        # مساعد رئيس بناءً على الإلزام لكل وردية
+        # مساعد رئيس بناءً على الإلزام لكل وردية (سيكون صفراً للإدارات المساندة)
         assistant_head = required_assistant_heads * shifts
         
     return {
@@ -294,14 +293,22 @@ def main_page_logic():
     with st.form("main_criteria_form"):
         col1, col2, col3 = st.columns(3)
 
-        # مساعد رئيس إلزامي
-        settings['required_assistant_heads'] = col1.number_input(
-            "مساعد رئيس إلزامي لكل وردية (0 = لا يوجد)",
-            min_value=0,
-            value=settings['required_assistant_heads'],
-            step=1,
-            key=f"main_asst_head_req_{selected_department_name}"
-        )
+        # 🟢 NEW: تحديد ما إذا كانت الإدارة تنتمي للإدارات المساندة التي لا تتطلب مساعد رئيس
+        is_auxiliary_manual = dept_type == 'Manual_HR' and selected_category == "الإدارات المساندة"
+        
+        # مساعد رئيس إلزامي - يظهر فقط للإدارات التشغيلية وغير المساندة
+        if not is_auxiliary_manual:
+            settings['required_assistant_heads'] = col1.number_input(
+                "مساعد رئيس إلزامي لكل وردية (0 = لا يوجد)",
+                min_value=0,
+                value=settings['required_assistant_heads'],
+                step=1,
+                key=f"main_asst_head_req_{selected_department_name}"
+            )
+        else:
+            settings['required_assistant_heads'] = 0 # إجبار على صفر لإلغاء الاحتساب القيادي المساعد
+            col1.write("*(لا ينطبق مساعد رئيس على الإدارات المساندة)*")
+
 
         # المعيار
         if dept_type != 'Manual_HR': # لا حاجة لمعيار وتغطية لـ Manual_HR
@@ -406,6 +413,10 @@ def main_page_logic():
 
         required_assistant_heads = settings['required_assistant_heads']
         
+        # 🟢 NEW: إجبار مساعد الرئيس على صفر إذا كانت الإدارة مساندة (لتلبية الطلب)
+        if selected_category == "الإدارات المساندة":
+            required_assistant_heads = 0
+        
         # استدعاء دالة التوزيع الجديدة
         staff_breakdown = distribute_staff(
             res_basic,
@@ -508,7 +519,7 @@ def all_departments_page():
     user_settings = st.session_state['user_settings_all']
     
     # --- إدارة المراكز الديناميكية (خارج النموذج للتعامل مع RERUN) ---
-    with st.expander("➕ إدارة مراكز الضيافة "):
+    with st.expander("➕ إدارة مراكز الضيافة الديناميكية"):
         st.subheader("إضافة وتعديل مراكز الضيافة")
         st.info("اضغط على 'إضافة مركز جديد' لحساب احتياج الضيافة بشكل منفصل لكل مركز.")
         
@@ -774,42 +785,25 @@ def all_departments_page():
 
                 with col.container(border=True):
                     st.markdown(f"***_{name}_***")
-
-                    # مساعد رئيس إلزامي
-                    asst_head_req_val = st.number_input(
-                        "مساعد رئيس إلزامي لكل وردية (0 = لا يوجد)",
-                        min_value=0,
-                        value=user_settings[name]['required_assistant_heads'],
-                        step=1,
-                        key=f"all_asst_head_req_{name}_{i}{suffix_aux}"
-                    )
-                    user_settings[name]['required_assistant_heads'] = asst_head_req_val # تحديث
-
-                    # الإدارات المساندة قد تكون Ratio أو Manual_HR
+                    
+                    # 🟢 NEW: إخفاء مدخل مساعد رئيس للإدارات المساندة ذات الاحتساب اليدوي (Manual_HR)
                     if dept_type != 'Manual_HR':
-                        criterion_options = ['المتواجدين (حجم)', 'التدفق اليومي (حركة)']
-                        criterion_choice_text = st.radio(
-                            "المعيار",
-                            options=criterion_options,
-                            index=0 if user_settings[name]['criterion'] == 'Present' else 1,
-                            key=f"all_crit_{name}_{i}{suffix_aux}"
-                        )
-                        coverage_val = st.number_input(
-                            "نسبة تغطية (%)",
-                            min_value=0, max_value=100,
-                            value=int(user_settings[name]['coverage'] * 100),
+                        # مساعد رئيس إلزامي
+                        asst_head_req_val = st.number_input(
+                            "مساعد رئيس إلزامي لكل وردية (0 = لا يوجد)",
+                            min_value=0,
+                            value=user_settings[name]['required_assistant_heads'],
                             step=1,
-                            key=f"all_cov_{name}_{i}{suffix_aux}"
+                            key=f"all_asst_head_req_{name}_{i}{suffix_aux}"
                         )
-                        ratio_val = st.number_input("المعيار (وحدة/موظف)", min_value=1, value=user_settings[name]['ratio'], key=f"all_ratio_{name}_{i}{suffix_aux}")
-                        
-                        # تحديث إعدادات Ratio
-                        user_settings[name]['criterion'] = 'Present' if criterion_choice_text == criterion_options[0] else 'Flow'
-                        user_settings[name]['coverage'] = coverage_val / 100
-                        user_settings[name]['ratio'] = ratio_val
+                        user_settings[name]['required_assistant_heads'] = asst_head_req_val
+                    else:
+                        user_settings[name]['required_assistant_heads'] = 0 # إجبار على صفر
+                        st.write("*(لا ينطبق مساعد رئيس)*")
 
-                    # NEW: إدخال يدوي للموارد البشرية
-                    elif dept_type == 'Manual_HR':
+
+                    # الإدارات المساندة الآن جميعها Manual_HR
+                    if dept_type == 'Manual_HR':
                         st.markdown("---")
                         st.markdown("**إدخال يدوي للقوى العاملة**")
                         col_m1_hr, col_m2_hr = st.columns(2)
@@ -862,14 +856,20 @@ def all_departments_page():
                 
                 # تحديث مساعد الرئيس الإلزامي
                 asst_head_key = f"all_asst_head_req_{name}_{i}{suffix}"
-                user_settings[name]['required_assistant_heads'] = st.session_state[asst_head_key]
+                
+                # 🟢 NEW: تحديث مساعد الرئيس: إجبار على صفر للإدارات المساندة (Manual_HR)
+                if dept_type != 'Manual_HR': 
+                    if asst_head_key in st.session_state:
+                         user_settings[name]['required_assistant_heads'] = st.session_state[asst_head_key]
+                else:
+                    user_settings[name]['required_assistant_heads'] = 0 # Force to 0 for Manual_HR
 
                 # تحديث الإعدادات حسب نوع القسم
                 if dept_type == 'Manual_HR':
                     # تحديث إعدادات Manual_HR
                     user_settings[name]['manager_count'] = st.session_state[f"all_manager_count_{name}_{i}{suffix_aux}"]
                     user_settings[name]['admin_count'] = st.session_state[f"all_admin_count_{name}_{i}{suffix_aux}"]
-                    # بقية القيم (criterion, coverage, ratio) غير مستخدمة لهذا النوع، لكن يمكن تحديثها إن وجدت
+                    # بقية القيم غير مستخدمة
                     
                 elif dept_type != 'Bus_Ratio':
                     # تحديث Criterion و Coverage و Ratio/Time
@@ -940,7 +940,7 @@ def all_departments_page():
             res_basic = calculate_ratio_based_staff(num_units_to_serve, ratio)
             res_basic = max(1, res_basic)
             
-            # استدعاء دالة التوزيع الجديدة
+            # استدعاء دالة التوزيع الجديدة (مساعد رئيس هنا ثابت 1)
             staff_breakdown = distribute_staff(
                 res_basic,
                 shifts_count,
@@ -970,6 +970,7 @@ def all_departments_page():
         for dept_name, dept_info in fixed_depts_flat.items():
             dept_type = dept_info['type']
             settings = st.session_state['user_settings_all'][dept_name]
+            category_name = dept_info['category']
             res_basic = 0
 
             if dept_type == 'Ratio':
@@ -999,6 +1000,10 @@ def all_departments_page():
                 res_basic = 0
             
             required_assistant_heads = settings['required_assistant_heads']
+            
+            # 🟢 NEW: إجبار مساعد الرئيس على صفر إذا كانت الإدارة مساندة (لتلبية الطلب)
+            if category_name == "الإدارات المساندة":
+                required_assistant_heads = 0
 
             # استدعاء دالة التوزيع
             staff_breakdown = distribute_staff(
