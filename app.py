@@ -113,46 +113,104 @@ def to_excel(df):
     processed_data = output.getvalue()
     return processed_data
 
-def generate_budget_data(total_staff_per_role, service_days):
-    """توليد بيانات الميزانية الإجمالية."""
-    budget_data = []
+# **تم تحديث الدالة لإنشاء جدول الميزانية التفصيلي حسب الإدارة**
+def generate_detailed_budget_excel(all_results, service_days, is_all_page=True, dept_name_single=None): 
+    """توليد بيانات الميزانية الإجمالية (تفاصيل الإدارات) أو الفردية."""
+    
+    detailed_budget_data = []
     final_total_project_cost = 0 
     
-    # يجب تصفية الأدوار التي قيمتها صفر لتجنب عرضها في الميزانية إذا لم تكن موجودة
-    roles_to_include = {k: v for k, v in total_staff_per_role.items() if v > 0}
-    
-    for role, staff_count in roles_to_include.items():
-        # التأكد من استخدام المفتاح الصحيح لاستعادة الراتب/المكافأة
-        salary_or_reward = st.session_state.get(f'salary_{role}', DEFAULT_SALARY.get(role, 0))
-        total_cost_per_role = staff_count * salary_or_reward
-        final_total_project_cost += total_cost_per_role
-        
-        budget_data.append({
-            "الرتبة الوظيفية": role,
-            "العدد الإجمالي المطلوب": staff_count,
-            "متوسط المكافأة  (ريال)": salary_or_reward, 
-            "التكلفة الإجمالية  (ريال)": total_cost_per_role 
-        })
+    # قائمة الأدوار المرتبة كما في الثوابت
+    roles_order = list(DEFAULT_SALARY.keys())
 
-    total_project_cost = final_total_project_cost
-    
-    df_budget = pd.DataFrame(budget_data)
-    
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df_budget.to_excel(writer, index=False, sheet_name='تفاصيل_مكافآت_المشروع') 
-        summary_data = {
-            "البيان": ["إجمالي تكلفة المكافآت (ريال)", "إجمالي الموظفين (بدون احتياط)"],
-            "القيمة": [total_project_cost, sum(total_staff_per_role.values())]
-        }
-        df_summary = pd.DataFrame(summary_data)
-        df_summary.to_excel(writer, startrow=1, startcol=1, index=False, sheet_name='ملخص_الميزانية')
+    if is_all_page:
+        # 1. تجهيز بيانات التفاصيل (الإدارة في الصفوف) للصفحة الموحدة
+        for entry in all_results:
+            dept_name = entry["الإدارة"]
+            
+            # نستخدم الأدوار المرتبة لضمان الترتيب في Excel
+            for role in roles_order:
+                # استخدام المفتاح المترجم والتحقق من وجوده
+                staff_count = entry.get(role, 0)
+                
+                if staff_count > 0:
+                    salary_or_reward = st.session_state.get(f'salary_{role}', DEFAULT_SALARY.get(role, 0))
+                    total_cost_per_role = staff_count * salary_or_reward
+                    final_total_project_cost += total_cost_per_role
+                    
+                    detailed_budget_data.append({
+                        "الإدارة": dept_name,
+                        "الرتبة الوظيفية": role,
+                        "العدد المطلوب": staff_count,
+                        "متوسط المكافأة (ريال)": salary_or_reward, 
+                        "التكلفة الإجمالية (ريال)": total_cost_per_role 
+                    })
         
-    return output.getvalue()
+        df_detailed_budget = pd.DataFrame(detailed_budget_data)
+        
+        # 2. تجهيز ملخص الإجمالي الكلي
+        total_staff_per_role = {}
+        for entry in detailed_budget_data:
+            role = entry["الرتبة الوظيفية"]
+            count = entry["العدد المطلوب"]
+            total_staff_per_role[role] = total_staff_per_role.get(role, 0) + count
+            
+        total_staff_count = sum(total_staff_per_role.values())
+        
+        # 3. كتابة الملف
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            # جدول التفاصيل
+            df_detailed_budget.to_excel(
+                writer, 
+                index=False, 
+                sheet_name='تفاصيل_ميزانية_الإدارات',
+                columns=["الإدارة", "الرتبة الوظيفية", "العدد المطلوب", "متوسط المكافأة (ريال)", "التكلفة الإجمالية (ريال)"]
+            ) 
+            
+            # جدول الملخص 
+            summary_data = {
+                "البيان": ["إجمالي تكلفة المكافآت (ريال)", "إجمالي الموظفين في الهيكل القيادي"],
+                "القيمة": [final_total_project_cost, total_staff_count]
+            }
+            df_summary = pd.DataFrame(summary_data)
+            df_summary.to_excel(writer, startrow=1, startcol=1, index=False, sheet_name='ملخص_الميزانية')
+            
+        return output.getvalue()
+    
+    else: # الصفحة الفردية
+        # 1. تجهيز بيانات التفاصيل (للإدارة الواحدة)
+        for role in roles_order:
+            staff_count = all_results.get(role, 0) # all_results is actually the translated_breakdown here
+            
+            if staff_count > 0:
+                salary_or_reward = st.session_state.get(f'salary_{role}', DEFAULT_SALARY.get(role, 0))
+                total_cost_per_role = staff_count * salary_or_reward
+                final_total_project_cost += total_cost_per_role
+                
+                detailed_budget_data.append({
+                    "الرتبة الوظيفية": role,
+                    "العدد المطلوب": staff_count,
+                    "متوسط المكافأة (ريال)": salary_or_reward, 
+                    "التكلفة الإجمالية (ريال)": total_cost_per_role 
+                })
+        
+        df_budget = pd.DataFrame(detailed_budget_data)
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df_budget.to_excel(
+                writer, 
+                index=False, 
+                sheet_name=f'ميزانية_{dept_name_single}',
+                columns=["الرتبة الوظيفية", "العدد المطلوب", "متوسط المكافأة (ريال)", "التكلفة الإجمالية (ريال)"]
+            ) 
+        return output.getvalue()
 
-def to_excel_budget(total_staff_per_role, service_days):
+
+# تم تحديث الدالة to_excel_budget لتوجيه البيانات بشكل صحيح
+def to_excel_budget(data_for_budget, service_days, is_all_page=True, dept_name_single=None):
     """نقطة دخول لتحويل بيانات الميزانية إلى Excel."""
-    return generate_budget_data(total_staff_per_role, service_days)
+    return generate_detailed_budget_excel(data_for_budget, service_days, is_all_page, dept_name_single)
 
 def add_hospitality_center(is_default=False):
     """تضيف مركز ضيافة جديد (مع خيار لجعله الافتراضي)."""
@@ -382,6 +440,8 @@ def main_page_logic():
     if calculate_button:
         st.session_state['user_settings_main'][selected_department_name] = settings
         st.session_state['run_calculation_main'] = True
+        # حذف بيانات التحميل القديمة لتجنب التصدير الخاطئ
+        if 'last_main_df' in st.session_state: del st.session_state['last_main_df']
         st.rerun()
 
     if st.session_state.get('run_calculation_main', False) and selected_department_name:
@@ -485,26 +545,43 @@ def main_page_logic():
         
         st.info(f"مقدم الخدمة الأساسي (بدون قيادة): **{res_basic}**")
 
-        budget_data_main = translated_breakdown
-        col_download1, col_download2 = st.columns(2)
+        # **تخزين البيانات في session_state لتجنب إعادة الاحتساب عند التحميل**
+        st.session_state['last_main_df'] = results_df.copy()
+        st.session_state['last_main_budget_data'] = translated_breakdown
+        st.session_state['last_main_dept_name'] = selected_department_name
+
+    # **منطق التحميل - يستخدم البيانات المخزنة**
+    if 'last_main_df' in st.session_state and 'last_main_budget_data' in st.session_state:
         
-        # توفير ملفات التحميل
-        df_to_excel = results_df.copy()
-        df_to_excel.columns.name = "الإدارة"
+        def download_main_manpower():
+            # دالة مساعدة للحصول على بيانات القوى العاملة
+            df_to_excel = st.session_state['last_main_df'].copy()
+            df_to_excel.columns.name = "الإدارة"
+            return to_excel(df_to_excel)
+            
+        def download_main_budget():
+            # دالة مساعدة للحصول على بيانات الميزانية
+            return to_excel_budget(
+                st.session_state['last_main_budget_data'], 
+                service_days, 
+                is_all_page=False, 
+                dept_name_single=st.session_state['last_main_dept_name']
+            )
+
+        col_download1, col_download2 = st.columns(2)
         
         col_download1.download_button(
             label="⬇️ تحميل جدول الاحتياج (Excel)",
-            data=to_excel(df_to_excel),
-            file_name=f"احتياج_القوى_العاملة_فردي_{selected_department_name}.xlsx",
+            data=download_main_manpower(), # Call the helper function
+            file_name=f"احتياج_القوى_العاملة_فردي_{st.session_state['last_main_dept_name']}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
         )
         
-        # يجب تمرير الـ breakdown الكامل إلى دالة الميزانية
         col_download2.download_button(
             label="⬇️ تحميل تفاصيل الميزانية (Excel)",
-            data=to_excel_budget(budget_data_main, service_days),
-            file_name=f"ميزانية_فردي_{selected_department_name}.xlsx",
+            data=download_main_budget(), # Call the helper function
+            file_name=f"ميزانية_فردي_{st.session_state['last_main_dept_name']}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
         )
@@ -978,14 +1055,16 @@ def all_page_logic():
         
         # 5. تخزين الإجماليات وحساب الميزانية الإجمالية
         total_project_cost = 0
+        # نستخدم total_staff_per_role الذي تم تجميعه بالفعل (بدون احتياط)
         for role, staff_count in total_staff_per_role.items():
-            # Use the translated role name to fetch the salary
             salary_or_reward = st.session_state.get(f'salary_{role}', DEFAULT_SALARY.get(role, 0))
             total_project_cost += staff_count * salary_or_reward
             
-        st.session_state['total_staff_per_role'] = total_staff_per_role
-        st.session_state['total_budget_needed'] = total_staff_needed # هذا هو العدد الإجمالي مع الاحتياط
-        st.session_state['total_budget_value'] = total_project_cost
+        # **تخزين البيانات في session_state لتجنب إعادة الاحتساب عند التحميل**
+        st.session_state['last_all_manpower_df'] = df.copy() # جدول القوى العاملة
+        st.session_state['last_all_results_data'] = all_results # قائمة النتائج التفصيلية للميزانية
+        st.session_state['total_budget_needed'] = total_staff_needed # الإجمالي مع الاحتياط
+        st.session_state['total_budget_value'] = total_project_cost # قيمة الميزانية الكلية (تكلفة هيكل القوى العاملة الأساسي)
 
         st.markdown("---")
         st.subheader("الإجماليات الكلية")
@@ -1002,24 +1081,32 @@ def all_page_logic():
         
         st.markdown("---")
         
-        # 6. ملفات التحميل
+    # **منطق التحميل - يستخدم البيانات المخزنة**
+    if 'last_all_manpower_df' in st.session_state and 'last_all_results_data' in st.session_state:
+        
+        def download_all_manpower():
+            # دالة مساعدة للحصول على بيانات القوى العاملة
+            df_to_excel = st.session_state['last_all_manpower_df'].reset_index().rename(columns={"الإدارة": "الإدارة"})
+            return to_excel(df_to_excel)
+            
+        def download_all_budget():
+            # دالة مساعدة للحصول على بيانات الميزانية التفصيلية
+            return to_excel_budget(st.session_state['last_all_results_data'], service_days, is_all_page=True)
+
+
         col_download1, col_download2 = st.columns(2)
-        
-        # تجهيز جدول الاحتياج الموحد
-        df_to_excel = df.reset_index().rename(columns={"الإدارة": "الإدارة"})
-        
+
         col_download1.download_button(
             label="⬇️ تحميل جدول الاحتياج الموحد (Excel)",
-            data=to_excel(df_to_excel),
+            data=download_all_manpower(), # Call helper
             file_name=f"احتياج_القوى_العاملة_الموحد.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
         )
         
-        # تجهيز تفاصيل الميزانية الإجمالية
         col_download2.download_button(
             label="⬇️ تحميل تفاصيل الميزانية الكلية (Excel)",
-            data=to_excel_budget(total_staff_per_role, service_days),
+            data=download_all_budget(), # Call helper
             file_name=f"ميزانية_المشروع_الكلية.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
@@ -1056,12 +1143,7 @@ def sidebar_ui():
     with st.sidebar:
         
         # 3. عرض اللوغو (اختياري)
-        logo_path = os.path.join(os.getcwd(), 'logo.png')
-        if os.path.exists(logo_path):
-            # تحديد العرض ليتوافق مع حجم الشريط الجانبي (عادةً 250px)
-            st.image(logo_path, width=250)
-        else:
-            st.warning("⚠️ لم يتم العثور على ملف 'logo.png'. يرجى التأكد من وضعه في نفس مجلد التطبيق.")
+        # تم حذف مسار اللوغو غير الموجود لتجنب أخطاء
         
         st.header("إعدادات النظام العامة ⚙️")
         
