@@ -39,15 +39,14 @@ DEPARTMENTS = {
         {"name": " الدعم والضيافة", "type": "Time", "default_time": 5.0, "default_coverage": 100, "default_criterion": 'Present'},
         {"name": "الرعاية صحية", "type": "Ratio", "default_ratio": 1500, "default_coverage": 100, "default_criterion": 'Present'},
     ],
-    # القسم الجديد - الإدارات المساندة (تمت الإضافة)
+    # القسم الجديد - الإدارات المساندة (تم التعديل لتصبح جميعها Manual_HR)
     "الإدارات المساندة": [
-        {"name": "الصيانة", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
-        {"name": "الدعم الفني", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
-        # تم التحديث: تغيير نوع الاحتساب للموارد البشرية إلى إدخال يدوي
+        {"name": "الصيانة", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 1, "default_criterion": 'Present'},
+        {"name": "الدعم الفني", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 1, "default_criterion": 'Present'},
         {"name": "الموارد البشرية", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 2, "default_criterion": 'Present'}, 
-        {"name": "الجودة", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
-        {"name": "السكرتارية", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
-        {"name": "التواصل المؤسسي", "type": "Ratio", "default_ratio": 200, "default_coverage": 100, "default_criterion": 'Present'},
+        {"name": "الجودة", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 1, "default_criterion": 'Present'},
+        {"name": "السكرتارية", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 1, "default_criterion": 'Present'},
+        {"name": "التواصل المؤسسي", "type": "Manual_HR", "default_manager_count": 1, "default_admin_count": 1, "default_criterion": 'Present'},
     ]
 }
 
@@ -292,8 +291,8 @@ def main_page_logic():
             'time': dept_info.get('default_time', 1),
             'bus_count': 100,
             'events_multiplier': 2,
-            'required_assistant_heads': 0,
-            # NEW: إضافة الإعدادات الافتراضية للموارد البشرية
+            # (التعديل 2): القيمة الافتراضية لمساعد رئيس هي 0 للإدارات المساندة
+            'required_assistant_heads': 0 if selected_category == "الإدارات المساندة" else 0,
             'manager_count': dept_info.get('default_manager_count', 1), 
             'admin_count': dept_info.get('default_admin_count', 2), 
         }
@@ -306,14 +305,18 @@ def main_page_logic():
     with st.form("main_criteria_form"):
         col1, col2, col3 = st.columns(3)
 
-        # مساعد رئيس إلزامي
-        settings['required_assistant_heads'] = col1.number_input(
-            "مساعد رئيس إلزامي لكل وردية (0 = لا يوجد)",
-            min_value=0,
-            value=settings['required_assistant_heads'],
-            step=1,
-            key=f"main_asst_head_req_{selected_department_name}"
-        )
+        # مساعد رئيس إلزامي - (التعديل 2): إخفاء هذا الخيار للإدارات المساندة
+        if selected_category != "الإدارات المساندة":
+            settings['required_assistant_heads'] = col1.number_input(
+                "مساعد رئيس إلزامي لكل وردية (0 = لا يوجد)",
+                min_value=0,
+                value=settings['required_assistant_heads'],
+                step=1,
+                key=f"main_asst_head_req_{selected_department_name}"
+            )
+        else:
+            settings['required_assistant_heads'] = 0 # إلزامي أن تكون 0
+            col1.info("احتساب مساعد رئيس غير متوفر للإدارات المساندة") # رسالة توضيحية
 
         # المعيار
         if dept_type != 'Manual_HR': # لا حاجة لمعيار وتغطية لـ Manual_HR
@@ -353,7 +356,7 @@ def main_page_logic():
             settings['bus_count'] = col_b1.number_input("عدد الحافلات المتوقع", min_value=1, value=settings['bus_count'], key=f"main_bus_count_{selected_department_name}")
             settings['ratio'] = col_b2.number_input("المعيار (حافلة/موظف)", min_value=1, value=settings['ratio'], key=f"main_bus_ratio_{selected_department_name}")
 
-        # NEW: إدخال يدوي للموارد البشرية
+        # NEW: إدخال يدوي للموارد البشرية (يتم تطبيقه الآن على كل الإدارات المساندة)
         elif dept_type == 'Manual_HR':
             st.markdown("---")
             st.markdown("**إدخال يدوي للقوى العاملة**")
@@ -411,7 +414,7 @@ def main_page_logic():
             actual_hajjaj_in_center = num_hajjaj_for_dept * coverage
             res_basic = calculate_time_based_staff(actual_hajjaj_in_center * multiplier, time_min, service_days, staff_work_hours_day)
         
-        # NEW: Manual_HR handling
+        # NEW: Manual_HR handling (يتم تطبيقه الآن على الإدارات المساندة)
         elif dept_type == 'Manual_HR':
             # نعتبر res_basic = 0 لاحتساب القيادات فقط
             res_basic = 0
@@ -425,7 +428,7 @@ def main_page_logic():
             required_assistant_heads=required_assistant_heads
         )
         
-        # NEW: إضافة الأدوار اليدوية واستبدال مقدم الخدمة (إذا كان Manual_HR)
+        # إضافة الأدوار اليدوية واستبدال مقدم الخدمة (إذا كان Manual_HR)
         if dept_type == 'Manual_HR':
             staff_breakdown["Service_Provider"] = 0 # إلغاء مقدم الخدمة
             staff_breakdown["مدير"] = settings['manager_count']
@@ -529,6 +532,9 @@ def all_page_logic():
         # تهيئة الإعدادات الافتراضية لجميع الأقسام
         for dept_name, dept_info in ALL_DEPARTMENTS_FLAT.items():
              if dept_info['category'] != "الضيافة":
+                # (التعديل 2): إلزامي أن يكون مساعد الرئيس 0 للإدارات المساندة عند التهيئة
+                required_assistant_heads = 0 if dept_info['category'] == "الإدارات المساندة" else 0
+                
                 st.session_state['user_settings_all'][dept_name] = {
                     'criterion': dept_info.get('default_criterion', 'Present'),
                     'coverage': dept_info.get('default_coverage', 100) / 100,
@@ -536,8 +542,7 @@ def all_page_logic():
                     'time': dept_info.get('default_time', 1),
                     'bus_count': 100,
                     'events_multiplier': 2,
-                    'required_assistant_heads': 0,
-                    # NEW: إضافة الإعدادات الافتراضية للموارد البشرية
+                    'required_assistant_heads': required_assistant_heads,
                     'manager_count': dept_info.get('default_manager_count', 1), 
                     'admin_count': dept_info.get('default_admin_count', 2), 
                 }
@@ -778,63 +783,29 @@ def all_page_logic():
             
             for i, dept in enumerate(depts):
                 name = dept['name']
-                dept_type = dept['type']
+                dept_type = dept['type'] # الآن جميعها Manual_HR
                 col = cols[col_index % 3]
                 col_index += 1
                 
                 # تهيئة الإعدادات الافتراضية (بما فيها Manual_HR)
                 if name not in user_settings:
+                    # هذه التهيئة أصبحت الآن لـ Manual_HR فقط
                     user_settings[name] = {
-                        'criterion': dept.get('default_criterion', 'Present'),
-                        'coverage': dept.get('default_coverage', 100) / 100,
-                        'ratio': dept.get('default_ratio', 1),
-                        'time': dept.get('default_time', 1),
-                        'bus_count': 100,
-                        'events_multiplier': 2,
-                        'required_assistant_heads': 0,
+                        'required_assistant_heads': 0, 
                         'manager_count': dept.get('default_manager_count', 1), 
                         'admin_count': dept.get('default_admin_count', 2), 
+                        # إضافة قيم وهمية لتجنب أخطاء المفاتيح غير المستخدمة
+                        'criterion': 'Present', 'coverage': 1, 'ratio': 1, 'time': 1, 'bus_count': 100, 'events_multiplier': 2
                     }
                 
                 with col.container(border=True):
                     st.markdown(f"***_{name}_***")
 
-                    # مساعد رئيس إلزامي
-                    asst_head_req_val = st.number_input(
-                        "مساعد رئيس إلزامي لكل وردية (0 = لا يوجد)",
-                        min_value=0,
-                        value=user_settings[name]['required_assistant_heads'],
-                        step=1,
-                        key=f"all_asst_head_req_{name}_{i}{suffix_aux}"
-                    )
-                    user_settings[name]['required_assistant_heads'] = asst_head_req_val
-
+                    # (التعديل 2): إلغاء احتساب مساعد رئيس وضبط القيمة على 0
+                    user_settings[name]['required_assistant_heads'] = 0 
                     
-                    if dept_type == 'Ratio':
-                        criterion_options = ['المتواجدين (حجم)', 'التدفق اليومي (حركة)']
-                        criterion_choice_text = st.radio(
-                            "المعيار",
-                            options=criterion_options,
-                            index=0 if user_settings[name]['criterion'] == 'Present' else 1,
-                            key=f"all_crit_{name}_{i}{suffix_aux}"
-                        )
-                        coverage_val = st.number_input(
-                            "نسبة تغطية (%)",
-                            min_value=0, max_value=100,
-                            value=int(user_settings[name]['coverage'] * 100),
-                            step=1,
-                            key=f"all_cov_{name}_{i}{suffix_aux}"
-                        )
-                        ratio_val = st.number_input("المعيار (وحدة/موظف)", min_value=1, value=user_settings[name]['ratio'], key=f"all_ratio_{name}_{i}{suffix_aux}")
-
-                        # تحديث إعدادات Ratio
-                        user_settings[name]['criterion'] = 'Present' if criterion_choice_text == criterion_options[0] else 'Flow'
-                        user_settings[name]['coverage'] = coverage_val / 100
-                        user_settings[name]['ratio'] = ratio_val
-
-                    # NEW: إدخال يدوي للموارد البشرية
-                    elif dept_type == 'Manual_HR':
-                        st.markdown("---")
+                    # (التعديل 1): تطبيق الإدخال اليدوي
+                    if dept_type == 'Manual_HR':
                         st.markdown("**إدخال يدوي للقوى العاملة**")
                         col_m1_hr, col_m2_hr = st.columns(2)
                         manager_count_val = col_m1_hr.number_input(
@@ -851,7 +822,6 @@ def all_page_logic():
                             step=1,
                             key=f"all_admin_count_{name}_{i}{suffix_aux}"
                         )
-                        st.markdown("---")
                         # تحديث إعدادات Manual_HR
                         user_settings[name]['manager_count'] = manager_count_val
                         user_settings[name]['admin_count'] = admin_count_val
@@ -882,23 +852,17 @@ def all_page_logic():
             ratio = st.session_state['user_settings_all'].get(ratio_key, 200)
             num_units_to_serve = center['hajjaj_count'] # عدد الحجاج الكلي
 
-            # --- التعديل المعتمد: تطبيق المعادلة الجديدة للضيافة (المتوسط اليومي) ---
-            
-            # الخطوة 1: حساب متوسط الحجاج اليومي (المجموع الكلي / مدة الخدمة)
+            # تطبيق المعادلة الجديدة للضيافة (المتوسط اليومي)
             daily_average_hajjaj = num_units_to_serve / service_days
-            
-            # حساب مقدم الخدمة الأساسي: تطبيق المعيار على المتوسط اليومي
             res_basic = calculate_ratio_based_staff(daily_average_hajjaj, ratio)
-            
-            # -------------------------------------------------------------------
             
             res_basic = max(1, res_basic) # التأكد من أن العدد لا يقل عن 1 إذا كان العدد الكلي للحجاج > 0
             
-            # استدعاء دالة التوزيع الجديدة
+            # استدعاء دالة التوزيع الجديدة (مساعد رئيس ثابت 1 لكل وردية للضيافة)
             staff_breakdown = distribute_staff(
                 res_basic,
                 shifts_count,
-                required_assistant_heads=1, # الضيافة دائماً بوجود مساعد رئيس لكل وردية
+                required_assistant_heads=1,
             )
             
             total_staff_in_hierarchy = sum(staff_breakdown.values())
@@ -953,7 +917,7 @@ def all_page_logic():
                     actual_hajjaj_in_center = num_hajjaj_for_dept * coverage
                     res_basic = calculate_time_based_staff(actual_hajjaj_in_center * multiplier, time_min, service_days, staff_work_hours_day)
                 
-                # Manual_HR (res_basic = 0)
+                # Manual_HR (يتم تطبيقه الآن على الإدارات المساندة)
                 elif dept_type == 'Manual_HR':
                     res_basic = 0 # لا يتم حساب مقدم خدمة هنا
 
