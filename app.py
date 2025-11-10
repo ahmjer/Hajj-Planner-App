@@ -1121,9 +1121,9 @@ def sidebar_ui():
     
     # 1. تهيئة القيم الافتراضية لأول مرة
     if 'num_hajjaj_present' not in st.session_state:
-        st.session_state['num_hajjaj_present'] = 100000
+        st.session_state['num_hajjaj_present'] = 15000
     if 'num_hajjaj_flow' not in st.session_state:
-        st.session_state['num_hajjaj_flow'] = 25000
+        st.session_state['num_hajjaj_flow'] = 6000
     if 'service_days' not in st.session_state:
         st.session_state['service_days'] = 8
     if 'staff_hours' not in st.session_state:
