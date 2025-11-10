@@ -250,6 +250,11 @@ def switch_to_all():
     st.session_state['current_page'] = 'all'
     st.session_state['run_calculation_all'] = False
 
+def switch_to_vehicles():
+    """التبديل إلى صفحة احتساب المركبات."""
+    st.session_state['current_page'] = 'vehicles'
+    st.session_state['run_calculation_vehicles'] = False
+
 def switch_to_landing():
     """التبديل إلى صفحة البداية."""
     st.session_state['current_page'] = 'landing'
@@ -258,10 +263,12 @@ def switch_to_landing():
 # 3. واجهة البداية (Landing Page Logic - NEW)
 # -------------------------------------------------------------------
 def landing_page():
-    st.title(" نظام تخطيط القوى العاملة")
+    st.title("🏡 نظام تخطيط القوى العاملة")
     st.markdown("---")
+
+    st.header("اختر نوع الاحتساب:")
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         st.info("🔢 **الاحتساب الفردي للإدارات**")
@@ -283,13 +290,24 @@ def landing_page():
             type="primary"
         )
     
+    # NEW: إضافة زر صفحة المركبات
+    with col3:
+        st.warning("🚘 **احتساب حجم أسطول المركبات**")
+        st.markdown("يسمح لك هذا الوضع بحساب عدد المركبات المطلوبة لدعم المواقع الميدانية بناءً على معايير تشغيلية.")
+        st.button(
+            "⬅️ الانتقال إلى احتساب المركبات",
+            on_click=switch_to_vehicles,
+            use_container_width=True,
+            type="secondary"
+        )
+
     st.markdown("---")
     st.subheader("إعدادات النظام العامة (في الشريط الجانبي)")
     st.info("يمكنك تعديل بيانات الحجاج ومدة الخدمة ومتوسط المكافآت من الشريط الجانبي الأيمن.")
 
 
 # -------------------------------------------------------------------
-# 4. منطق الصفحة الفردية (Main Page Logic - تم تحديثه)
+# 4. منطق الصفحة الفردية (Main Page Logic) - (لم يتغير)
 # -------------------------------------------------------------------
 def main_page_logic():
     st.title("🔢 الاحتساب الفردي للإدارات")
@@ -297,7 +315,7 @@ def main_page_logic():
     
     st.warning("⚠️ يتم في هذه الشاشة اختيار إدارة واحدة فقط لتخصيص معاييرها وحساب احتياجها بشكل فردي.")
     
-    # جلب الإعدادات العامة (تم حذف ratio_supervisor و ratio_assistant_head)
+    # جلب الإعدادات العامة
     hajjaj_present = st.session_state.get('num_hajjaj_present', 15000)
     hajjaj_flow = st.session_state.get('num_hajjaj_flow', 6000)
     service_days = st.session_state.get('service_days', 8)
@@ -586,10 +604,10 @@ def main_page_logic():
 
 
 # -------------------------------------------------------------------
-# 5. منطق الصفحة الموحدة (All Page Logic - تم تحديثه)
+# 5. منطق الصفحة الموحدة (All Page Logic) - (لم يتغير)
 # -------------------------------------------------------------------
 def all_page_logic():
-    st.title(" تخطيط القوى العاملة الموحد")
+    st.title("📊 تخطيط القوى العاملة الموحد")
     st.markdown("---")
     
     # جلب الإعدادات العامة
@@ -1110,18 +1128,175 @@ def all_page_logic():
             use_container_width=True
         )
 
+# -------------------------------------------------------------------
+# 6. منطق صفحة احتساب المركبات (NEW VEHICLE PAGE LOGIC)
+# -------------------------------------------------------------------
+def vehicle_page_logic():
+    st.title("🚘 احتساب حجم أسطول المركبات")
+    st.markdown("---")
+    
+    st.info("ℹ️ يتم احتساب العدد المطلوب من المركبات (السيارات) بناءً على معايير العمليات الميدانية اليومية.")
+    
+    # تهيئة إعدادات الحالة الخاصة بالمركبات
+    if 'vehicle_settings' not in st.session_state:
+        st.session_state['vehicle_settings'] = {
+            'num_sites': 20,
+            'visits_per_site_day': 2,
+            'service_time_hr': 0.5,
+            'travel_time_hr': 0.5,
+            'vehicle_shift_hr': 8,
+            'reserve_factor_vehicles': 15, # 15%
+        }
+    
+    settings = st.session_state['vehicle_settings']
+
+    with st.form("vehicle_criteria_form"):
+        st.subheader("مدخلات العمليات")
+        col_v1, col_v2 = st.columns(2)
+        
+        settings['num_sites'] = col_v1.number_input(
+            "عدد المواقع الميدانية التي تتم خدمتها (N)",
+            min_value=1,
+            value=settings['num_sites'],
+            step=1,
+            key='v_num_sites'
+        )
+        
+        settings['visits_per_site_day'] = col_v2.number_input(
+            "متوسط عدد الزيارات المطلوبة للموقع الواحد يومياً (V)",
+            min_value=1,
+            value=settings['visits_per_site_day'],
+            step=1,
+            key='v_visits_per_site_day'
+        )
+        
+        st.markdown("---")
+        st.subheader("مدخلات الوقت")
+        col_t1, col_t2, col_t3 = st.columns(3)
+        
+        settings['service_time_hr'] = col_t1.number_input(
+            "متوسط وقت الخدمة في الموقع (بالساعة) ($T_{service}$)",
+            min_value=0.1,
+            value=settings['service_time_hr'],
+            step=0.1,
+            key='v_service_time_hr'
+        )
+        
+        settings['travel_time_hr'] = col_t2.number_input(
+            "متوسط وقت الرحلة (ذهاب وإياب) بين المركز والموقع (بالساعة) ($T_{travel}$)",
+            min_value=0.1,
+            value=settings['travel_time_hr'],
+            step=0.1,
+            key='v_travel_time_hr'
+        )
+        
+        settings['vehicle_shift_hr'] = col_t3.number_input(
+            "ساعات عمل المركبة اليومية/الوردية (H)",
+            min_value=1,
+            value=settings['vehicle_shift_hr'],
+            step=1,
+            key='v_vehicle_shift_hr'
+        )
+
+        st.markdown("---")
+        settings['reserve_factor_vehicles'] = st.slider(
+            "نسبة احتياط المركبات (للتغطية والصيانة) (%) ($R_{factor}$)",
+            min_value=0, max_value=50, value=settings['reserve_factor_vehicles'], step=1, key="v_reserve_factor"
+        )
+        
+        calculate_button = st.form_submit_button("🔄 احتساب حجم أسطول المركبات", type="primary")
+
+    if calculate_button:
+        st.session_state['vehicle_settings'] = settings
+        st.session_state['run_calculation_vehicles'] = True
+        st.rerun()
+
+    if st.session_state.get('run_calculation_vehicles', False):
+        st.session_state['run_calculation_vehicles'] = False
+        st.success("✅ جاري حساب حجم الأسطول المطلوب...")
+        
+        # جلب القيم
+        N = settings['num_sites']
+        V = settings['visits_per_site_day']
+        T_service = settings['service_time_hr']
+        T_travel = settings['travel_time_hr']
+        H_shift = settings['vehicle_shift_hr']
+        R_factor = settings['reserve_factor_vehicles'] / 100
+        
+        # 1. إجمالي عدد الزيارات اليومية
+        total_visits = N * V
+        
+        # 2. إجمالي الوقت اللازم لكل زيارة
+        time_per_visit = T_service + T_travel
+        
+        # 3. إجمالي ساعات العمل المطلوبة يومياً للمنظومة
+        total_hours_needed = total_visits * time_per_visit
+        
+        # 4. عدد السيارات الأساسي المطلوب
+        if H_shift > 0:
+            cars_basic = total_hours_needed / H_shift
+        else:
+            cars_basic = 0
+
+        # 5. العدد النهائي مع الاحتياط (تقريب للأعلى)
+        cars_final = math.ceil(cars_basic * (1 + R_factor))
+        
+        # تخزين النتائج للعرض والتحميل
+        results = {
+            "إجمالي الزيارات اليومية المطلوبة": f"{total_visits} زيارة",
+            "الوقت الكلي المطلوب لتغطية الزيارات (بالساعة)": f"{total_hours_needed:,.2f} ساعة",
+            "العدد الأساسي المطلوب من المركبات (وظيفياً)": f"{cars_basic:,.2f} مركبة",
+            "نسبة الاحتياط المطبقة": f"{R_factor * 100}%",
+            "العدد النهائي المطلوب من المركبات (مع الاحتياط)": cars_final,
+        }
+        
+        st.subheader("نتائج احتساب حجم أسطول المركبات")
+        
+        st.metric(
+            label="**العدد النهائي المطلوب من المركبات (مع الاحتياط)**",
+            value=f"{cars_final} مركبة",
+            delta=f"{cars_final - math.floor(cars_basic)} مركبات احتياط" if cars_final > 0 else None,
+            delta_color="off"
+        )
+        
+        # تحويل النتائج لجدول للعرض والتحميل
+        df_results = pd.DataFrame(results.items(), columns=["البيان", "القيمة"])
+        df_results = df_results.set_index("البيان")
+        
+        st.dataframe(df_results, use_container_width=True)
+        
+        st.session_state['last_vehicle_df'] = df_results.copy()
+        
+    # **منطق التحميل**
+    if 'last_vehicle_df' in st.session_state:
+        
+        def download_vehicle_excel():
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df_to_excel = st.session_state['last_vehicle_df'].copy()
+                df_to_excel.to_excel(writer, sheet_name='احتياج المركبات')
+            processed_data = output.getvalue()
+            return processed_data
+            
+        st.download_button(
+            label="⬇️ تحميل نتائج احتساب المركبات (Excel)",
+            data=download_vehicle_excel(),
+            file_name="احتساب_أسطول_المركبات.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
 
 # -------------------------------------------------------------------
-# 6. واجهة الشريط الجانبي (Sidebar UI)
+# 7. واجهة الشريط الجانبي (Sidebar UI)
 # -------------------------------------------------------------------
 def sidebar_ui():
     """تجهيز وعرض الشريط الجانبي."""
     
-    # 1. تهيئة القيم الافتراضية لأول مرة
+    # 1. تهيئة القيم الافتراضية لأول مرة (لم تتغير)
     if 'num_hajjaj_present' not in st.session_state:
-        st.session_state['num_hajjaj_present'] = 15000
+        st.session_state['num_hajjaj_present'] = 100000
     if 'num_hajjaj_flow' not in st.session_state:
-        st.session_state['num_hajjaj_flow'] = 6000
+        st.session_state['num_hajjaj_flow'] = 25000
     if 'service_days' not in st.session_state:
         st.session_state['service_days'] = 8
     if 'staff_hours' not in st.session_state:
@@ -1140,17 +1315,18 @@ def sidebar_ui():
     # 2. عرض الشريط الجانبي
     with st.sidebar:
         
-        # 3. عرض اللوغو (اختياري) - تم التحديث باستخدام ملف logo.png
+        # 3. عرض اللوغو (اختياري)
         # *************************************************************
-        # ملاحظة: يجب أن يكون ملف "logo.png" في نفس مجلد التطبيق
         st.image(
             "logo.png", 
             caption="شعار المنشأة", 
             use_column_width=True
         )
         # *************************************************************
-                
-        st.button("   الصفحة الرئيسية", on_click=switch_to_landing, use_container_width=True, type="secondary")
+        
+        st.header("إعدادات النظام العامة ⚙️")
+        
+        st.button("🏠 العودة لصفحة البداية", on_click=switch_to_landing, use_container_width=True, type="secondary")
         st.markdown("---")
         
         with st.container(border=True): # الإطار الأول
@@ -1204,7 +1380,7 @@ def sidebar_ui():
                 )
         
 # -------------------------------------------------------------------
-# 7. الدالة الرئيسية (Main Function)
+# 8. الدالة الرئيسية (Main Function)
 # -------------------------------------------------------------------
 def main():
     # 6. إعدادات الصفحة و التوجيه نحو اليمين (RTL)
@@ -1264,6 +1440,8 @@ def main():
         main_page_logic()
     elif st.session_state['current_page'] == 'all':
         all_page_logic()
+    elif st.session_state['current_page'] == 'vehicles':
+        vehicle_page_logic()
 
 
 if __name__ == "__main__":
