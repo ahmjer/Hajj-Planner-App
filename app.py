@@ -352,15 +352,15 @@ def main_page_logic():
         elif dept_type == 'Manual_HR':
             st.markdown("---")
             st.markdown("**إدخال يدوي للقوى العاملة**")
-            col_m1, col_m2 = st.columns(2)
-            settings['manager_count'] = col_m1.number_input(
+            # تم إزالة st.columns(2) لضمان التوافق (ظهرت هذه المشكلة في الصفحة الموحدة لكن تم إصلاحها هنا أيضاً)
+            settings['manager_count'] = st.number_input(
                 "عدد **مدير** مطلوب",
                 min_value=0, 
                 value=settings.get('manager_count', dept_info.get('default_manager_count', 1)),
                 step=1,
                 key=f"main_manager_count_{selected_department_name}"
             )
-            settings['admin_count'] = col_m2.number_input(
+            settings['admin_count'] = st.number_input(
                 "عدد **اداري** مطلوب",
                 min_value=0, 
                 value=settings.get('admin_count', dept_info.get('default_admin_count', 2)),
@@ -889,12 +889,13 @@ def all_departments_page():
                         user_settings[name]['time'] = st.session_state[time_key]
                         user_settings[name]['events_multiplier'] = st.session_state[mult_key]
                 
+                # 🔴 FIX: تم حذف محاولة تحديث 'coverage' من هذا القسم لأنه لا يوجد مدخل لها في الواجهة لـ Bus_Ratio
                 elif dept_type == 'Bus_Ratio':
                     # تحديث Bus_Ratio
                     crit_key = f"all_crit_{name}_{i}"
                     user_settings[name]['criterion'] = 'Present' if st.session_state[crit_key].startswith('المتواجدين') else 'Flow'
-                    cov_key = f"all_cov_{name}_{i}"
-                    user_settings[name]['coverage'] = st.session_state[cov_key] / 100
+                    
+                    # تم تجاهل تحديث 'coverage' هنا لتجنب KeyError، حيث تعتمد على القيمة الافتراضية
                     
                     bus_count_key = f"all_bus_count_{name}_{i}"
                     bus_ratio_key = f"all_bus_ratio_{name}_{i}"
