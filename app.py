@@ -11,6 +11,12 @@ hide_streamlit_style = """
             </style>
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+hide_streamlit_style = """
+            <style>
+            footer {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # -------------------------------------------------------------------
 # 1. الثوابت العامة (Constants)
 # -------------------------------------------------------------------
