@@ -3,7 +3,14 @@ import math
 import pandas as pd
 from io import BytesIO
 import os
-
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # -------------------------------------------------------------------
 # 1. الثوابت العامة (Constants)
 # -------------------------------------------------------------------
